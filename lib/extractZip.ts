@@ -1,4 +1,4 @@
-const AdmZip = require('adm-zip');
+import AdmZip from 'adm-zip';
 import path from 'path';
 import { promises as fs } from 'fs';
 
@@ -7,9 +7,19 @@ export default async function extractZip(zipPath: string, extractTo: string): Pr
     const zip = new AdmZip(zipPath);
     const zipEntries = zip.getEntries();
     
+    // Validate target destination absolutely
+    const resolvedExtractTo = path.resolve(extractTo);
+
     // Create all directories first
     for (const entry of zipEntries) {
-      const entryPath = path.join(extractTo, entry.entryName);
+      // SECURITY FIX: Zip slip Validation
+      // Strip any leading slashes
+      const cleanEntryName = entry.entryName.replace(/^[/\\]+/, '');
+      const entryPath = path.resolve(resolvedExtractTo, cleanEntryName);
+      
+      if (!entryPath.startsWith(resolvedExtractTo + path.sep) && entryPath !== resolvedExtractTo) {
+        throw new Error('Zip slip detected');
+      }
       
       if (entry.isDirectory) {
         try {
@@ -22,7 +32,13 @@ export default async function extractZip(zipPath: string, extractTo: string): Pr
     
     // Extract all files
     for (const entry of zipEntries) {
-      const entryPath = path.join(extractTo, entry.entryName);
+      const cleanEntryName = entry.entryName.replace(/^[/\\]+/, '');
+      const entryPath = path.resolve(resolvedExtractTo, cleanEntryName);
+      
+      // SECURITY FIX: Zip slip Validation
+      if (!entryPath.startsWith(resolvedExtractTo + path.sep) && entryPath !== resolvedExtractTo) {
+        throw new Error('Zip slip detected');
+      }
       
       if (!entry.isDirectory) {
         // Ensure parent directory exists

@@ -59,6 +59,12 @@ export async function middleware(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // SECURITY FIX: Middleware Auth Fix - checks for /api directly in middleware
+  const isApiRoute = req.nextUrl.pathname.startsWith('/api');
+  if (!user && isApiRoute) {
+    return NextResponse.json({ success: false, error: 'Unauthorized via Middleware' }, { status: 401 });
+  }
+
   // Protected routes that require authentication
   const protectedPaths = ['/dashboard', '/upload', '/scan-results', '/patches', '/timeline', '/settings'];
   const isProtectedRoute = protectedPaths.some(path => req.nextUrl.pathname.startsWith(path));
@@ -87,11 +93,10 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

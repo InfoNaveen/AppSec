@@ -1,15 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import os from 'os';
 import { supabaseServiceRole } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth-utils';
 import { uploadToStorage } from '@/lib/storage-utils';
 import AdmZip from 'adm-zip';
+import { sanitizeUrl } from '@/lib/sanitizeUrl';
+import { uploadRateLimit } from '@/lib/rate-limit';
 
-const execPromise = promisify(exec);
+const execFileAsync = promisify(execFile);
+
+// Check magic bytes for ZIP (0x50 0x4B 0x03 0x04)
+function isZipFile(buffer: Buffer): boolean {
+  return buffer.length > 3 && 
+         buffer[0] === 0x50 && 
+         buffer[1] === 0x4B && 
+         buffer[2] === 0x03 && 
+         buffer[3] === 0x04;
+}
+
+/**
+ * Cleanup old devsentinel dirs in tmp
+ */
+async function cleanupOldTmpDirs() {
+  try {
+    const tmpDir = os.tmpdir();
+    const entries = await fs.readdir(tmpDir, { withFileTypes: true });
+    const now = Date.now();
+    const maxAge = 60 * 60 * 1000; // 1 hour
+    
+    for (const entry of entries) {
+      if (entry.isDirectory() && entry.name.startsWith('devsentinel-')) {
+        const fullPath = path.join(tmpDir, entry.name);
+        try {
+          const stats = await fs.stat(fullPath);
+          if (now - stats.mtimeMs > maxAge) {
+            await fs.rm(fullPath, { recursive: true, force: true });
+          }
+        } catch (e) {
+          // ignore stat/rm errors for individual files
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to clean up old temp dirs:', err);
+  }
+}
 
 /**
  * Create a ZIP file from a directory
@@ -29,6 +68,22 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = user.id;
+
+    // SECURITY FIX: Rate Limiting
+    if (uploadRateLimit) {
+      const { success, reset } = await uploadRateLimit.limit(userId);
+      if (!success) {
+        return NextResponse.json({ success: false, error: 'Rate limit exceeded' }, { 
+          status: 429,
+          headers: { 'Retry-After': Math.max(0, Math.ceil((reset - Date.now()) / 1000)).toString() }
+        });
+      }
+    }
+
+    // Trigger cleanup of old temp directories on each upload request
+    // SECURITY FIX: Cleanup Fix background job
+    cleanupOldTmpDirs().catch(() => {});
+
     const supabase = supabaseServiceRole();
 
     // Check if it's a file upload, GitHub URL, or user story
@@ -42,7 +97,7 @@ export async function POST(request: NextRequest) {
       let projectName = (formData.get('projectName') as string) || `Project ${new Date().toISOString()}`;
 
       // Sanitize project name
-      projectName = projectName.substring(0, 100).replace(/[<>:"/\\|?*]/g, '');
+      projectName = projectName.substring(0, 100).replace(/[<>\:"\/\\|?*]/g, '');
 
       // Create project in Supabase first to get UUID
       const { data: project, error: projectError } = await supabase
@@ -66,9 +121,6 @@ export async function POST(request: NextRequest) {
       const storagePath = `projects/${projectId}/source.zip`;
 
       if (userStory) {
-        // User story input - will be handled by code generation
-        // Store user story in project metadata (we can extend schema later)
-        // For now, store it in timeline
         await supabase
           .from('timeline_events')
           .insert([
@@ -86,12 +138,42 @@ export async function POST(request: NextRequest) {
           type: 'user_story'
         });
       } else if (file) {
-        // Handle ZIP file upload
+        // SECURITY FIX: File Upload Validation
+        if (!file.type.includes('zip') && !file.type.includes('octet-stream')) {
+          return NextResponse.json({ success: false, error: 'Invalid file type. Must be ZIP.' }, { status: 400 });
+        }
+
+        // Enforce 50MB max file size before reading fully into memory
+        if (file.size > 50 * 1024 * 1024) {
+          return NextResponse.json({ success: false, error: 'File size exceeds 50MB limit.' }, { status: 400 });
+        }
+
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
+        // Check magic bytes
+        if (!isZipFile(buffer)) {
+          return NextResponse.json({ success: false, error: 'File is not a valid ZIP archive.' }, { status: 400 });
+        }
+
+        // File checks -> Uncompressed size & entries limit
+        const zip = new AdmZip(buffer);
+        const entries = zip.getEntries();
+        if (entries.length > 10000) {
+          return NextResponse.json({ success: false, error: 'ZIP file contains too many entries.' }, { status: 400 });
+        }
+
+        let totalUncompressedSize = 0;
+        for (const entry of entries) {
+          totalUncompressedSize += entry.header.size;
+        }
+
+        if (totalUncompressedSize > 500 * 1024 * 1024) {
+          return NextResponse.json({ success: false, error: 'ZIP contents exceed uncompressed limits.' }, { status: 400 });
+        }
+
         // Upload to Supabase Storage
-        await uploadToStorage(storagePath, buffer, file.type || 'application/zip');
+        await uploadToStorage(storagePath, buffer, 'application/zip');
 
         // Log timeline event
         await supabase
@@ -124,10 +206,9 @@ export async function POST(request: NextRequest) {
       }
 
       // Sanitize project name
-      projectName = (projectName || `GitHub Project ${new Date().toISOString()}`).substring(0, 100).replace(/[<>:"/\\|?*]/g, '');
+      projectName = (projectName || `GitHub Project ${new Date().toISOString()}`).substring(0, 100).replace(/[<>\:"\/\\|?*]/g, '');
 
-      // Security: Strictly validate URL to prevent command injection
-      // Must be a valid http/https URL and end with .git optional, no spaces or shell characters
+      // Strictly validate URL pattern
       const urlPattern = /^https?:\/\/[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\/[a-zA-Z0-9._-]+)+\/?(\.git)?$/;
       if (!urlPattern.test(repoUrl)) {
         return NextResponse.json({ success: false, error: 'Invalid repository URL format' }, { status: 400 });
@@ -152,23 +233,30 @@ export async function POST(request: NextRequest) {
       }
 
       const projectId = project.id;
-
-      // Clone repository to temporary location (cross-platform compatible)
       const tmpDir = os.tmpdir();
       const cloneDir = path.join(tmpDir, `devsentinel-${projectId}-${Date.now()}`);
 
       try {
-        let cloneCmd = `git clone --depth 1 "${repoUrl}" "${cloneDir}"`;
-
+        // SECURITY FIX: Command Injection Fix
+        const gitArgs = ['clone', '--depth', '1'];
+        
+        let targetUrl = repoUrl;
         if (githubToken) {
-          // Add token to URL for private repositories
-          const urlObj = new URL(repoUrl);
-          if (urlObj.hostname === 'github.com') {
-            cloneCmd = `git clone --depth 1 "https://${githubToken}@${urlObj.hostname}${urlObj.pathname}" "${cloneDir}"`;
-          }
+           const urlObj = new URL(repoUrl);
+           if (urlObj.hostname === 'github.com') {
+             targetUrl = `https://${githubToken}@${urlObj.hostname}${urlObj.pathname}`;
+           }
         }
+        
+        gitArgs.push(targetUrl);
+        gitArgs.push(cloneDir);
 
-        await execPromise(cloneCmd, { timeout: 60000 }); // 60 second timeout
+        const env = { ...process.env };
+        
+        await execFileAsync('git', gitArgs, { 
+          timeout: 60000,
+          env 
+        });
 
         // Create ZIP from cloned repository
         const zipBuffer = await zipDirectory(cloneDir);
@@ -177,13 +265,6 @@ export async function POST(request: NextRequest) {
         const storagePath = `projects/${projectId}/source.zip`;
         await uploadToStorage(storagePath, zipBuffer, 'application/zip');
 
-        // Clean up cloned directory
-        try {
-          await fs.rm(cloneDir, { recursive: true, force: true });
-        } catch (cleanupError) {
-          console.warn('Failed to clean up clone directory:', cleanupError);
-        }
-
         // Log timeline event
         await supabase
           .from('timeline_events')
@@ -191,7 +272,7 @@ export async function POST(request: NextRequest) {
             {
               project_id: projectId,
               event_type: 'upload',
-              event_message: `Project cloned from ${repoUrl}`
+              event_message: `Project cloned from ${sanitizeUrl(repoUrl)}`
             }
           ]);
 
@@ -202,26 +283,27 @@ export async function POST(request: NextRequest) {
           type: 'github_repo'
         });
       } catch (cloneError: any) {
-        // Redact token from error message if present
-        const errorMessage = cloneError.message.replace(githubToken || 'HIDDEN_TOKEN', '*****');
+        // SECURITY FIX: GitHub Token Leak (credential stripping)
+        const errorMessage = cloneError.message ? sanitizeUrl(cloneError.message) : 'Unknown error';
         console.error('Git clone error:', errorMessage);
-
-        // Clean up on error
-        try {
-          await fs.rm(cloneDir, { recursive: true, force: true });
-        } catch { }
 
         return NextResponse.json({
           success: false,
           error: `Failed to clone repository: ${errorMessage}`
         }, { status: 500 });
+      } finally {
+        // SECURITY FIX: Cleanup Fix implemented in finally block
+        try {
+          await fs.rm(cloneDir, { recursive: true, force: true });
+        } catch { }
       }
     }
   } catch (error: any) {
-    console.error('Upload error:', error);
+    const errorMsg = error.message ? sanitizeUrl(error.message) : 'Internal server error';
+    console.error('Upload error:', errorMsg);
     return NextResponse.json({
       success: false,
-      error: error.message || 'Internal server error'
+      error: errorMsg
     }, { status: 500 });
   }
 }

@@ -1,305 +1,177 @@
-import { createSupabaseServerClient, getCurrentUserServer } from '@/lib/supabase-server';
-import { redirect } from 'next/navigation';
-import {
-  Shield,
-  Zap,
-  Lock,
-  TrendingUp,
-  ArrowRight,
-  CheckCircle2,
-  AlertTriangle,
-  FileText,
-  Clock
+'use client';
+
+import { 
+  Shield, AlertTriangle, Wrench, Activity, CheckCircle2, AlertCircle, Eye, ArrowUpRight
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
-// Server component - fetches data directly from Supabase
-export default async function DashboardPage() {
-  // Get authenticated user
-  const user = await getCurrentUserServer();
+// Hardcoded mock data strictly for display based on redesign requirements
+const mockStats = [
+  { name: 'Total Scans', value: '1,248', change: '+12%', icon: Shield, color: 'text-ds-accent-cyan', spark: [10, 25, 15, 40, 35, 60] },
+  { name: 'Critical Issues', value: '3', change: '-4', icon: AlertTriangle, color: 'text-ds-red', spark: [30, 20, 15, 10, 5, 3] },
+  { name: 'Patches Applied', value: '412', change: '+28%', icon: Wrench, color: 'text-ds-accent-green', spark: [20, 30, 45, 60, 55, 80] },
+  { name: 'Security Score', value: '94/100', change: '+2', icon: Activity, color: 'text-ds-accent-cyan', spark: [80, 85, 82, 90, 88, 94] },
+];
 
-  // Redirect to login if not authenticated
-  if (!user) {
-    redirect('/login');
-  }
+const mockRecentScans = [
+  { id: '1', project: 'auth-service', date: '2 mins ago', status: 'Completed', critical: 1, high: 2, medium: 4, low: 12 },
+  { id: '2', project: 'payment-gateway', date: '1 hour ago', status: 'Completed', critical: 0, high: 1, medium: 2, low: 8 },
+  { id: '3', project: 'user-portal-ui', date: '3 hours ago', status: 'Completed', critical: 0, high: 0, medium: 5, low: 15 },
+  { id: '4', project: 'legacy-api-v1', date: 'Yesterday', status: 'Completed', critical: 2, high: 5, medium: 10, low: 22 },
+];
 
-  const userId = user.id;
-
-  // Initialize Supabase client
-  const supabase = await createSupabaseServerClient();
-
-  // Fetch user's projects
-  const { data: projects, error: projectsError } = await supabase
-    .from('projects')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  // Fetch recent scans
-  let recentScans = [];
-  if (projects && projects.length > 0) {
-    const projectIds = projects.map(p => p.id);
-
-    const { data: scans, error: scansError } = await supabase
-      .from('scans')
-      .select(`
-        *,
-        projects(name)
-      `)
-      .in('project_id', projectIds)
-      .order('created_at', { ascending: false })
-      .limit(5);
-
-    recentScans = scans || [];
-  }
-
-  // Fetch recent timeline events
-  let timelineEvents = [];
-  if (projects && projects.length > 0) {
-    const projectIds = projects.map(p => p.id);
-
-    const { data: events, error: eventsError } = await supabase
-      .from('timeline_events')
-      .select('*')
-      .in('project_id', projectIds)
-      .order('created_at', { ascending: false })
-      .limit(5);
-
-    timelineEvents = events || [];
-  }
-
-  // Calculate stats
-  const totalProjects = projects ? projects.length : 0;
-  const totalScans = recentScans ? recentScans.length : 0;
-  const totalEvents = timelineEvents ? timelineEvents.length : 0;
+function Sparkline({ data, colorClass }: { data: number[], colorClass: string }) {
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const points = data.map((d, i) => `${(i / (data.length - 1)) * 100},${100 - ((d - min) / (max - min)) * 100}`).join(' ');
+  
+  // Extract explicit color for stroke based on class
+  let strokeColor = '#00E5FF';
+  if (colorClass.includes('red')) strokeColor = '#FF3B5C';
+  if (colorClass.includes('green')) strokeColor = '#00FF88';
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Welcome to your DevSentinel AI dashboard
-        </p>
+    <svg className="w-16 h-8" viewBox="0 -10 100 120" preserveAspectRatio="none">
+      <polyline
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points}
+      />
+    </svg>
+  );
+}
+
+export default function DashboardClient() {
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  return (
+    <div className="max-w-7xl mx-auto pb-12">
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold font-syne text-ds-text-primary tracking-wide">Command Center</h1>
+        <p className="mt-2 text-ds-text-secondary font-mono text-sm">Welcome to your ShieldX autonomous security operations dashboard.</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="mica-strong rounded-xl p-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <FileText className="h-24 w-24 text-brand-primary" />
-          </div>
-          <div className="flex items-center relative z-10">
-            <div className="p-3 rounded-lg bg-brand-primary/20 border border-brand-primary/30">
-              <FileText className="h-6 w-6 text-brand-primary" />
+      {/* Hero Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        {mockStats.map((stat, i) => (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1, duration: 0.4 }}
+            key={stat.name} 
+            className="bg-ds-bg-card rounded-xl p-6 border border-ds-border relative overflow-hidden group shadow-lg"
+          >
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-ds-accent-cyan via-ds-accent-cyan to-transparent opacity-80" />
+            
+            <div className="flex justify-between items-start mb-4">
+              <div className={`p-2 rounded-lg bg-ds-bg-surface border border-ds-border ${stat.color}`}>
+                <stat.icon className="h-5 w-5" />
+              </div>
+              <Sparkline data={stat.spark} colorClass={stat.color} />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-400">Total Projects</p>
-              <p className="text-3xl font-bold text-white mt-1">{totalProjects}</p>
+            
+            <div>
+              <p className="text-sm font-medium text-ds-text-muted mb-1">{stat.name}</p>
+              <div className="flex items-baseline space-x-2">
+                <span className="text-4xl font-bold font-syne text-ds-text-primary">
+                  {stat.value}
+                </span>
+                <span className={`flex items-center text-xs font-semibold ${stat.change.startsWith('+') ? 'text-ds-accent-cyan' : 'text-ds-accent-green'}`}>
+                  <ArrowUpRight className="h-3 w-3 mr-0.5" />
+                  {stat.change}
+                </span>
+              </div>
             </div>
-          </div>
-        </div>
-
-        <div className="mica-strong rounded-xl p-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Shield className="h-24 w-24 text-brand-secondary" />
-          </div>
-          <div className="flex items-center relative z-10">
-            <div className="p-3 rounded-lg bg-brand-secondary/20 border border-brand-secondary/30">
-              <Shield className="h-6 w-6 text-brand-secondary" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-400">Total Scans</p>
-              <p className="text-3xl font-bold text-white mt-1">{totalScans}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mica-strong rounded-xl p-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Clock className="h-24 w-24 text-brand-accent" />
-          </div>
-          <div className="flex items-center relative z-10">
-            <div className="p-3 rounded-lg bg-brand-accent/20 border border-brand-accent/30">
-              <Clock className="h-6 w-6 text-brand-accent" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-400">Recent Events</p>
-              <p className="text-3xl font-bold text-white mt-1">{totalEvents}</p>
-            </div>
-          </div>
-        </div>
+          </motion.div>
+        ))}
       </div>
 
-      {/* Recent Projects */}
-      <div className="mica-strong rounded-xl overflow-hidden mb-8">
-        <div className="px-6 py-5 border-b border-gray-700/50 flex justify-between items-center">
-          <h3 className="text-lg font-medium text-white">Recent Projects</h3>
-          <Link href="/projects" className="text-sm text-brand-secondary hover:text-brand-secondary/80 transition-colors">
-            View All
+      {/* Recent Scans Table */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.4 }}
+        className="bg-ds-bg-card rounded-xl border border-ds-border overflow-hidden shadow-2xl"
+      >
+        <div className="px-6 py-5 border-b border-ds-border flex justify-between items-center bg-ds-bg-surface/50">
+          <h3 className="text-lg font-bold font-syne text-ds-text-primary flex items-center">
+            <Activity className="h-5 w-5 text-ds-accent-cyan mr-2" />
+            Active Surveillance Logs
+          </h3>
+          <Link href="/scan-results" className="text-sm text-ds-accent-cyan hover:text-white transition-colors flex items-center font-semibold">
+            <span>View Directory</span>
+            <ArrowUpRight className="h-4 w-4 ml-1" />
           </Link>
         </div>
+        
         <div className="overflow-x-auto">
-          {projects && projects.length > 0 ? (
-            <table className="min-w-full">
-              <thead>
-                <tr>
-                  <th scope="col" className="dashboard-table-header">
-                    Project Name
-                  </th>
-                  <th scope="col" className="dashboard-table-header">
-                    Created
-                  </th>
-                  <th scope="col" className="dashboard-table-header">
-                    Status
-                  </th>
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-ds-bg-surface border-b border-ds-border text-xs uppercase tracking-widest text-ds-text-muted font-semibold">
+                <th className="px-6 py-4">Target Repository</th>
+                <th className="px-6 py-4">Timestamp</th>
+                <th className="px-6 py-4">Security Posture</th>
+                <th className="px-6 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-ds-border/50">
+              {mockRecentScans.map((scan) => (
+                <tr key={scan.id} className="hover:bg-ds-bg-surface/30 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center">
+                      <div className="h-8 w-8 rounded bg-ds-bg-deep border border-ds-border flex items-center justify-center mr-3 shadow-inner">
+                        <Shield className="h-4 w-4 text-ds-text-secondary" />
+                      </div>
+                      <span className="font-mono text-sm text-ds-text-primary group-hover:text-ds-accent-cyan transition-colors">{scan.project}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-sm text-ds-text-secondary">{scan.date}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex space-x-2">
+                       {scan.critical > 0 && (
+                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-ds-red/10 text-ds-red border border-ds-red/30 glow-red">
+                           C: {scan.critical}
+                         </span>
+                       )}
+                       {scan.high > 0 && (
+                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-ds-amber/10 text-ds-amber border border-ds-amber/30 glow-yellow">
+                           H: {scan.high}
+                         </span>
+                       )}
+                       {scan.medium > 0 && (
+                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-[#00A8CC]/10 text-[#00A8CC] border border-[#00A8CC]/30">
+                           M: {scan.medium}
+                         </span>
+                       )}
+                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-ds-accent-green/10 text-ds-accent-green border border-ds-accent-green/30 glow-green">
+                         L: {scan.low}
+                       </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button className="text-ds-text-secondary hover:text-ds-accent-cyan transition-colors p-2 rounded-md hover:bg-ds-bg-surface">
+                      <Eye className="h-4 w-4" />
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-700/30">
-                {projects.map((project) => (
-                  <tr key={project.id} className="dashboard-table-row">
-                    <td className="dashboard-table-cell">
-                      <div className="text-sm font-medium text-white">{project.name}</div>
-                      {project.repo_url && (
-                        <div className="text-xs text-gray-500 truncate max-w-xs font-mono mt-1">{project.repo_url}</div>
-                      )}
-                    </td>
-                    <td className="dashboard-table-cell">
-                      <div className="text-sm text-gray-400">
-                        {new Date(project.created_at).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="dashboard-table-cell">
-                      <span className="px-2.5 py-0.5 inline-flex text-xs leading-4 font-semibold rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
-                        Active
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="text-center py-12">
-              <div className="mx-auto h-16 w-16 rounded-full bg-gray-800/50 flex items-center justify-center mb-4 border border-gray-700">
-                <FileText className="h-8 w-8 text-gray-500" />
-              </div>
-              <h3 className="text-lg font-medium text-white">No projects yet</h3>
-              <p className="mt-2 text-sm text-gray-400 max-w-sm mx-auto">
-                Upload your first codebase to start scanning for vulnerabilities.
-              </p>
-              <div className="mt-6">
-                <Link href="/upload">
-                  <button className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-black bg-brand-secondary hover:bg-brand-secondary/90 transition-all shadow-lg shadow-brand-secondary/20">
-                    <FileText className="-ml-1 mr-2 h-5 w-5" />
-                    Upload Project
-                  </button>
-                </Link>
-              </div>
-            </div>
-          )}
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
-
-      {/* Recent Scans */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="mica-strong rounded-xl overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-700/50">
-            <h3 className="text-lg font-medium text-white">Recent Scans</h3>
-          </div>
-          <div className="px-6 py-5">
-            {recentScans && recentScans.length > 0 ? (
-              <ul className="divide-y divide-gray-700/30">
-                {recentScans.map((scan) => (
-                  <li key={scan.id} className="py-4 hover:bg-white/5 transition-colors -mx-6 px-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        <div className="p-2 rounded bg-brand-secondary/10 border border-brand-secondary/20">
-                          <Shield className="h-5 w-5 text-brand-secondary" />
-                        </div>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-white truncate">
-                          {scan.projects?.name || 'Unnamed Project'}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate mt-0.5">
-                          {new Date(scan.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                          Completed
-                        </span>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="text-center py-8">
-                <Shield className="mx-auto h-12 w-12 text-gray-600" />
-                <h3 className="mt-2 text-sm font-medium text-gray-300">No scans yet</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Upload a project and run your first scan.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Timeline Events */}
-        <div className="mica-strong rounded-xl overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-700/50">
-            <h3 className="text-lg font-medium text-white">Recent Activity</h3>
-          </div>
-          <div className="px-6 py-5">
-            {timelineEvents && timelineEvents.length > 0 ? (
-              <ul className="divide-y divide-gray-700/30">
-                {timelineEvents.map((event) => (
-                  <li key={event.id} className="py-4 hover:bg-white/5 transition-colors -mx-6 px-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        {event.event_type === 'upload' ? (
-                          <div className="p-2 rounded bg-green-500/10 border border-green-500/20">
-                            <FileText className="h-5 w-5 text-green-400" />
-                          </div>
-                        ) : event.event_type === 'scan_complete' ? (
-                          <div className="p-2 rounded bg-brand-secondary/10 border border-brand-secondary/20">
-                            <Shield className="h-5 w-5 text-brand-secondary" />
-                          </div>
-                        ) : event.event_type === 'patch_apply' ? (
-                          <div className="p-2 rounded bg-yellow-500/10 border border-yellow-500/20">
-                            <Zap className="h-5 w-5 text-yellow-400" />
-                          </div>
-                        ) : (
-                          <div className="p-2 rounded bg-gray-600/10 border border-gray-600/20">
-                            <Clock className="h-5 w-5 text-gray-400" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-200">
-                          {event.event_message}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {new Date(event.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="text-center py-8">
-                <Clock className="mx-auto h-12 w-12 text-gray-600" />
-                <h3 className="mt-2 text-sm font-medium text-gray-300">No activity yet</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Your activity will appear here.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

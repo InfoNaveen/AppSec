@@ -1,35 +1,49 @@
-# Dependencies
-node_modules/
-.npm/
+# ── Environment & Secrets ──────────────────────────────────────────────────
+.env
+.env.local
+.env*.local
+.env.production
+!.env.example
 
-# Next.js
+# ── Build Artifacts & Logs ─────────────────────────────────────────────────
+tsconfig.tsbuildinfo
 .next/
 out/
 build/
-
-# Development
-.env*
-!.env.example
-.vercel/
 dist/
-tmp/
-
-# Logs
-logs
+logs/
 *.log
 
-# IDEs and editors
+# ── Dependency Directories ─────────────────────────────────────────────────
+node_modules/
+.npm/
+
+# ── OS & Editor Noise ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Temporary files
+# ── Temporary Files ────────────────────────────────────────────────────────
 *.tmp
 *.temp
-.vercel
-.env*.local
+.vercel/
+tmp/
+
+# ── Sensitive / Vulnerable Test Files ─────────────────────────────────────
+vulnerable-test.*
+test-zip/
+*.zip
+
+# ── Temporary Devsentinel Clone Dirs ──────────────────────────────────────
+/tmp/devsentinel-*/
+
+# ── Debug & Scratch Scripts ────────────────────────────────────────────────
+test-*.js
+test-*.ts
+simple-scanner.js
+apply-schema.js
+apply-supabase-schema.js
+render.yaml

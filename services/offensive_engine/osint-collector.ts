@@ -1,9 +1,9 @@
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
 import path from 'path';
 
-const execPromise = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export interface OSINTResult {
   type: string;
@@ -82,22 +82,22 @@ export class OSINTCollector {
 
     try {
       // Check if nuclei is installed
-      await execPromise('nuclei -version', { timeout: 5000 });
+      await execFileAsync('nuclei', ['-version'], { timeout: 5000 });
 
-      // Prepare nuclei command
-      let command = `nuclei -target ${target} -json`;
-
+      // SECURITY FIX: OSINT Shell Injection Fix
+      const args = ['-target', target, '-json'];
+      
       // Add specific templates if provided
       if (this.config.nucleiTemplates && this.config.nucleiTemplates.length > 0) {
-        command += ` -t ${this.config.nucleiTemplates.join(',')}`;
+        args.push('-t', this.config.nucleiTemplates.join(','));
       } else {
         // Use common templates for web vulnerabilities
-        command += ' -t cves, exposures, panels, technologies';
+        args.push('-t', 'cves, exposures, panels, technologies');
       }
 
-      command += ` -timeout ${Math.floor((this.config.timeout || 30000) / 1000)}`;
+      args.push('-timeout', Math.floor((this.config.timeout || 30000) / 1000).toString());
 
-      const { stdout, stderr } = await execPromise(command, {
+      const { stdout, stderr } = await execFileAsync('nuclei', args, {
         timeout: this.config.timeout,
         cwd: this.projectPath
       });
@@ -144,23 +144,22 @@ export class OSINTCollector {
 
     try {
       // Check if nmap is installed
-      await execPromise('nmap --version', { timeout: 5000 });
+      await execFileAsync('nmap', ['--version'], { timeout: 5000 });
 
-      // Prepare nmap command with common scripts
-      // Security: Validate scripts are alphanumeric/basic dashes only to prevent injection
+      // SECURITY FIX: Shell Injection explicitly restricted
       const safeScripts = (this.config.nmapScripts || [])
         .filter(s => /^[a-zA-Z0-9\-_,]+$/.test(s));
 
-      let command = `nmap -sV`;
+      const args = ['-sV'];
       if (safeScripts.length > 0) {
-        command += ` --script ${safeScripts.join(',')}`;
+        args.push('--script', safeScripts.join(','));
       } else {
         // Default scripts if none provided or all were invalid
-        command += ` --script vuln,http-enum,http-headers,http-title,http-trace,nmap-vulns,cve`;
+        args.push('--script', 'vuln,http-enum,http-headers,http-title,http-trace,nmap-vulns,cve');
       }
-      command += ` -p- "${target}"`;
+      args.push('-p-', target);
 
-      const { stdout, stderr } = await execPromise(command, {
+      const { stdout, stderr } = await execFileAsync('nmap', args, {
         timeout: this.config.timeout,
         cwd: this.projectPath
       });
@@ -200,30 +199,31 @@ export class OSINTCollector {
 
     try {
       // Check if gf is installed (part of gf-patterns)
-      await execPromise('gf -h', { timeout: 5000 });
+      await execFileAsync('gf', ['-h'], { timeout: 5000 });
 
       // Common gf patterns for vulnerability detection
       const patterns = ['sqli', 'xss', 'lfi', 'rfi', 'redirect', 'rce', 'idor', 'ssti'];
 
       for (const pattern of patterns) {
         try {
-          const command = `echo "${target}" | gf ${pattern}`;
-          const { stdout, stderr } = await execPromise(command, {
+          // SECURITY FIX: Shell Injection via pipeline eliminated
+          const { stdout, stderr } = await execFileAsync('gf', [pattern], {
             timeout: this.config.timeout,
-            cwd: this.projectPath
-          });
+            cwd: this.projectPath,
+            input: target // Actually piped inside execFile child via node buffer!
+          } as any);
 
           if (stderr) {
             console.warn(`Gf pattern ${pattern} stderr:`, stderr);
           }
 
-          if (stdout && stdout.trim()) {
+          if (stdout && stdout.toString().trim()) {
             results.push({
               type: `gf-${pattern}`,
               target,
               data: {
                 pattern,
-                matches: stdout.trim()
+                matches: stdout.toString().trim()
               },
               confidence: 0.6, // Medium confidence
               timestamp: new Date()

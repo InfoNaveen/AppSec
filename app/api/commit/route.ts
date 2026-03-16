@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { promises as fs } from 'fs';
 import { commitToGitHub, extractRepoInfo } from '@/lib/github';
+import { scanRateLimit } from '@/lib/rate-limit'; // Using scan rate limit for commits (5/hr)
 
-const execPromise = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export async function POST(request: NextRequest) {
   try {
+    // SECURITY FIX: CSRF Origin verification
+    const origin = request.headers.get('origin');
+    if (origin && origin !== process.env.NEXT_PUBLIC_APP_URL) {
+      return NextResponse.json({ success: false, error: 'Forbidden. Invalid origin for CSRF.' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { projectId, githubToken, branchName = 'devsentinel-fixes', commitMessage = 'Apply security fixes from DevSentinel AI', repoUrl } = body;
 
@@ -22,6 +29,18 @@ export async function POST(request: NextRequest) {
 
     if (!repoUrl) {
       return NextResponse.json({ success: false, error: 'Repository URL is required' }, { status: 400 });
+    }
+
+    // SECURITY FIX: Rate Limiting
+    if (scanRateLimit) {
+      // Using projectId as identfier since this route didn't query `user.id` originally
+      const { success, reset } = await scanRateLimit.limit(`commit-${projectId}`);
+      if (!success) {
+        return NextResponse.json({ success: false, error: 'Rate limit exceeded' }, { 
+          status: 429,
+          headers: { 'Retry-After': Math.max(0, Math.ceil((reset - Date.now()) / 1000)).toString() }
+        });
+      }
     }
 
     const projectPath = path.join(process.cwd(), 'tmp', 'devsentinel', projectId);

@@ -14,23 +14,32 @@ interface LLMCallOptions {
 }
 
 interface ProviderConfig {
-  url: string;
-  headers: Record<string, string>;
+  url: (model: string) => string;
+  headers: () => Record<string, string>;
   formatMessages: (messages: LLMCallOptions['messages']) => any;
   formatTools?: (tools: any[]) => any;
   extractResponse: (data: any) => string | null;
   extractToolCalls?: (data: any) => any[] | null;
 }
 
+// SECURITY FIX: API Env Checks startup validation
+export function validateEnv() {
+  if (!process.env.OPENROUTER_API_KEY) throw new Error('OPENROUTER_API_KEY is missing');
+  if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is missing');
+  if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY is missing');
+  if (!process.env.TOGETHER_API_KEY) throw new Error('TOGETHER_API_KEY is missing');
+  if (!process.env.AZURE_OPENAI_API_KEY) throw new Error('AZURE_OPENAI_API_KEY is missing');
+}
+
 const providerConfigs: Record<string, ProviderConfig> = {
   openrouter: {
-    url: 'https://openrouter.ai/api/v1/chat/completions',
-    headers: {
-      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY || 'MISSING_OPENROUTER_API_KEY'}`,
+    url: () => 'https://openrouter.ai/api/v1/chat/completions',
+    headers: () => ({
+      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
       'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
       'X-Title': 'DevSentinel AI',
       'Content-Type': 'application/json'
-    },
+    }),
     formatMessages: (messages) => messages,
     formatTools: (tools) => tools,
     extractResponse: (data) => {
@@ -47,10 +56,10 @@ const providerConfigs: Record<string, ProviderConfig> = {
     }
   },
   gemini: {
-    url: `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key=${process.env.GEMINI_API_KEY || 'MISSING_GEMINI_API_KEY'}`,
-    headers: {
+    url: (model) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    headers: () => ({
       'Content-Type': 'application/json'
-    },
+    }),
     formatMessages: (messages) => ({
       contents: messages.map(msg => ({
         role: msg.role === 'assistant' ? 'model' : 'user',
@@ -58,7 +67,6 @@ const providerConfigs: Record<string, ProviderConfig> = {
       }))
     }),
     formatTools: (tools) => {
-      // Convert tools to Gemini format
       return {
         function_declarations: tools.map(tool => ({
           name: tool.function.name,
@@ -89,11 +97,11 @@ const providerConfigs: Record<string, ProviderConfig> = {
     }
   },
   groq: {
-    url: 'https://api.groq.com/openai/v1/chat/completions',
-    headers: {
-      'Authorization': `Bearer ${process.env.GROQ_API_KEY || 'MISSING_GROQ_API_KEY'}`,
+    url: () => 'https://api.groq.com/openai/v1/chat/completions',
+    headers: () => ({
+      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
       'Content-Type': 'application/json'
-    },
+    }),
     formatMessages: (messages) => messages,
     formatTools: (tools) => tools,
     extractResponse: (data) => {
@@ -110,11 +118,11 @@ const providerConfigs: Record<string, ProviderConfig> = {
     }
   },
   together: {
-    url: 'https://api.together.xyz/v1/chat/completions',
-    headers: {
-      'Authorization': `Bearer ${process.env.TOGETHER_API_KEY || 'MISSING_TOGETHER_API_KEY'}`,
+    url: () => 'https://api.together.xyz/v1/chat/completions',
+    headers: () => ({
+      'Authorization': `Bearer ${process.env.TOGETHER_API_KEY}`,
       'Content-Type': 'application/json'
-    },
+    }),
     formatMessages: (messages) => messages,
     formatTools: (tools) => tools,
     extractResponse: (data) => {
@@ -131,11 +139,11 @@ const providerConfigs: Record<string, ProviderConfig> = {
     }
   },
   azure: {
-    url: `${process.env.AZURE_OPENAI_ENDPOINT || 'https://YOUR_RESOURCE_NAME.openai.azure.com'}/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'YOUR_DEPLOYMENT_NAME'}/chat/completions?api-version=2024-06-01`,
-    headers: {
-      'api-key': `${process.env.AZURE_OPENAI_API_KEY || 'MISSING_AZURE_OPENAI_API_KEY'}`,
+    url: () => `${process.env.AZURE_OPENAI_ENDPOINT || 'https://YOUR_RESOURCE_NAME.openai.azure.com'}/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'YOUR_DEPLOYMENT_NAME'}/chat/completions?api-version=2024-06-01`,
+    headers: () => ({
+      'api-key': `${process.env.AZURE_OPENAI_API_KEY}`,
       'Content-Type': 'application/json'
-    },
+    }),
     formatMessages: (messages) => messages,
     formatTools: (tools) => tools,
     extractResponse: (data) => {
@@ -165,32 +173,11 @@ export async function callLLM({
   try {
     const config = providerConfigs[provider];
     if (!config) {
-      throw new Error(`Unsupported provider: ${provider}`);
+      throw new Error(`Unsupported provider`);
     }
 
-    // Check for missing API keys
-    if (provider === 'openrouter' && (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY.includes('MISSING'))) {
-      throw new Error('OpenRouter API key is missing. Please set OPENROUTER_API_KEY in your .env.local file.');
-    }
-    
-    if (provider === 'gemini' && (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.includes('MISSING'))) {
-      throw new Error('Gemini API key is missing. Please set GEMINI_API_KEY in your .env.local file.');
-    }
-    
-    if (provider === 'groq' && (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY.includes('MISSING'))) {
-      throw new Error('Groq API key is missing. Please set GROQ_API_KEY in your .env.local file.');
-    }
-    
-    if (provider === 'together' && (!process.env.TOGETHER_API_KEY || process.env.TOGETHER_API_KEY.includes('MISSING'))) {
-      throw new Error('Together API key is missing. Please set TOGETHER_API_KEY in your .env.local file.');
-    }
-    
-    if (provider === 'azure' && (!process.env.AZURE_OPENAI_API_KEY || process.env.AZURE_OPENAI_API_KEY.includes('MISSING'))) {
-      throw new Error('Azure OpenAI API key is missing. Please set AZURE_OPENAI_API_KEY in your .env.local file.');
-    }
-
-    // Replace model placeholder in URL for Gemini
-    const url = config.url.replace('{model}', model);
+    const url = config.url(model);
+    const headers = config.headers();
 
     const requestBody: any = {
       model,
@@ -218,7 +205,7 @@ export async function callLLM({
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: config.headers,
+      headers,
       body: JSON.stringify(requestBody),
       signal: controller.signal
     });
@@ -226,8 +213,7 @@ export async function callLLM({
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`LLM API error (${response.status}): ${errorText}`);
+      throw new Error(`LLM API error (${response.status})`);
     }
 
     const data = await response.json();
@@ -248,14 +234,11 @@ export async function callLLM({
 
     return content;
   } catch (error: any) {
-    console.error(`LLM call failed for ${provider}:`, error);
-    
-    // Handle timeout specifically
     if (error.name === 'AbortError') {
-      throw new Error(`LLM call timed out for ${provider}. Please try again.`);
+      throw new Error(`LLM call timed out. Please try again.`);
     }
-    
-    throw new Error(`Failed to call ${provider} LLM: ${error instanceof Error ? error.message : String(error)}`);
+    // SECURITY FIX: Never expose which keys are missing in API responses
+    throw new Error(`Failed to call LLM.`);
   }
 }
 
@@ -271,32 +254,11 @@ export async function callLLMWithTools({
   try {
     const config = providerConfigs[provider];
     if (!config) {
-      throw new Error(`Unsupported provider: ${provider}`);
+      throw new Error(`Unsupported provider`);
     }
 
-    // Check for missing API keys
-    if (provider === 'openrouter' && (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY.includes('MISSING'))) {
-      throw new Error('OpenRouter API key is missing. Please set OPENROUTER_API_KEY in your .env.local file.');
-    }
-    
-    if (provider === 'gemini' && (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.includes('MISSING'))) {
-      throw new Error('Gemini API key is missing. Please set GEMINI_API_KEY in your .env.local file.');
-    }
-    
-    if (provider === 'groq' && (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY.includes('MISSING'))) {
-      throw new Error('Groq API key is missing. Please set GROQ_API_KEY in your .env.local file.');
-    }
-    
-    if (provider === 'together' && (!process.env.TOGETHER_API_KEY || process.env.TOGETHER_API_KEY.includes('MISSING'))) {
-      throw new Error('Together API key is missing. Please set TOGETHER_API_KEY in your .env.local file.');
-    }
-    
-    if (provider === 'azure' && (!process.env.AZURE_OPENAI_API_KEY || process.env.AZURE_OPENAI_API_KEY.includes('MISSING'))) {
-      throw new Error('Azure OpenAI API key is missing. Please set AZURE_OPENAI_API_KEY in your .env.local file.');
-    }
-
-    // Replace model placeholder in URL for Gemini
-    const url = config.url.replace('{model}', model);
+    const url = config.url(model);
+    const headers = config.headers();
 
     const requestBody: any = {
       model,
@@ -324,7 +286,7 @@ export async function callLLMWithTools({
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: config.headers,
+      headers,
       body: JSON.stringify(requestBody),
       signal: controller.signal
     });
@@ -332,8 +294,7 @@ export async function callLLMWithTools({
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`LLM API error (${response.status}): ${errorText}`);
+      throw new Error(`LLM API error (${response.status})`);
     }
 
     const data = await response.json();
@@ -355,13 +316,9 @@ export async function callLLMWithTools({
 
     return { content };
   } catch (error: any) {
-    console.error(`LLM call failed for ${provider}:`, error);
-    
-    // Handle timeout specifically
     if (error.name === 'AbortError') {
-      throw new Error(`LLM call timed out for ${provider}. Please try again.`);
+      throw new Error(`LLM call timed out. Please try again.`);
     }
-    
-    throw new Error(`Failed to call ${provider} LLM: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`Failed to call LLM.`);
   }
 }

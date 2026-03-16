@@ -13,9 +13,9 @@ import {
   CheckCircle2,
   AlertCircle,
   ArrowRight,
-  Zap
+  Zap,
+  Activity
 } from 'lucide-react';
-import { fadeIn, slideInUp, staggerContainer, staggerItem } from '@/lib/motion';
 
 type ScanPhase = 'idle' | 'fetching' | 'analyzing' | 'patching' | 'reporting' | 'complete';
 
@@ -91,8 +91,6 @@ export default function UploadPage() {
     setErrorMessage(null);
     setProgress(0);
 
-    // DEMO MODE BYPASS: Simulate scan if backend is likely to fail (no keys)
-    // In a real fix, we would check health, but for this urgent request, we force success.
     try {
       if (uploadMethod === 'zip' && file) {
         const formData = new FormData();
@@ -113,7 +111,6 @@ export default function UploadPage() {
         setScanPhase('fetching');
         simulateProgress();
 
-        // Trigger scan
         const scanResponse = await fetch('/api/scan', {
           method: 'POST',
           headers: {
@@ -149,7 +146,6 @@ export default function UploadPage() {
         setScanPhase('fetching');
         simulateProgress();
 
-        // Trigger scan
         const scanResponse = await fetch('/api/scan', {
           method: 'POST',
           headers: {
@@ -186,7 +182,6 @@ export default function UploadPage() {
         setScanPhase('fetching');
         simulateProgress();
 
-        // Trigger orchestration (generates code and scans it)
         const orchestrateResponse = await fetch('/api/orchestrate', {
           method: 'POST',
           headers: {
@@ -225,54 +220,58 @@ export default function UploadPage() {
 
   return (
     <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={staggerContainer}
-      className="max-w-5xl mx-auto"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-5xl mx-auto pb-12"
     >
-      <motion.div variants={staggerItem} className="mb-8">
-        <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-          Upload & Scan
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold font-syne text-ds-text-primary tracking-wide flex items-center mb-3">
+          <UploadIcon className="h-8 w-8 text-ds-accent-cyan mr-3" />
+          Ingest & Validate
         </h1>
-        <p className="text-gray-400 text-lg">
-          Secure your codebase with AI-powered vulnerability detection
+        <p className="text-ds-text-secondary text-lg font-mono">
+          Initiate deep learning structural vulnerability audits for modern codebases.
         </p>
-      </motion.div>
+      </div>
 
-      <motion.div variants={staggerItem} className="glass-strong rounded-2xl border border-cyan-500/20 p-8">
+      <motion.div className="bg-ds-bg-card rounded-2xl border border-ds-border p-8 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-5">
+          <Shield className="h-64 w-64 text-ds-accent-cyan" />
+        </div>
+
         {/* Method Toggle */}
-        <div className="flex space-x-3 mb-8 p-1 glass rounded-lg border border-cyan-500/10">
+        <div className="flex space-x-2 mb-8 p-1.5 bg-ds-bg-surface rounded-xl border border-ds-border/50 relative z-10">
           <button
             type="button"
             onClick={() => setUploadMethod('zip')}
-            className={`flex-1 px-6 py-3 rounded-lg text-sm font-medium transition-all ${uploadMethod === 'zip'
-              ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30 shadow-lg shadow-cyan-500/10'
-              : 'text-gray-400 hover:text-cyan-400'
+            className={`flex-1 flex justify-center items-center px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${uploadMethod === 'zip'
+              ? 'bg-ds-accent-cyan text-black shadow-[0_0_15px_var(--ds-accent-cyan-dim)]'
+              : 'text-ds-text-secondary hover:text-ds-text-primary hover:bg-white/5'
               }`}
           >
-            <UploadIcon className="inline-block mr-2 h-4 w-4" />
+            <UploadIcon className="mr-2 h-4 w-4" />
             Upload ZIP
           </button>
           <button
             type="button"
             onClick={() => setUploadMethod('github')}
-            className={`flex-1 px-6 py-3 rounded-lg text-sm font-medium transition-all ${uploadMethod === 'github'
-              ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30 shadow-lg shadow-cyan-500/10'
-              : 'text-gray-400 hover:text-cyan-400'
+            className={`flex-1 flex justify-center items-center px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${uploadMethod === 'github'
+              ? 'bg-ds-accent-cyan text-black shadow-[0_0_15px_var(--ds-accent-cyan-dim)]'
+              : 'text-ds-text-secondary hover:text-ds-text-primary hover:bg-white/5'
               }`}
           >
-            <Github className="inline-block mr-2 h-4 w-4" />
+            <Github className="mr-2 h-4 w-4" />
             GitHub Repo
           </button>
           <button
             type="button"
             onClick={() => setUploadMethod('user_story')}
-            className={`flex-1 px-6 py-3 rounded-lg text-sm font-medium transition-all ${uploadMethod === 'user_story'
-              ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30 shadow-lg shadow-cyan-500/10'
-              : 'text-gray-400 hover:text-cyan-400'
+            className={`flex-1 flex justify-center items-center px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${uploadMethod === 'user_story'
+              ? 'bg-ds-accent-cyan text-black shadow-[0_0_15px_var(--ds-accent-cyan-dim)]'
+              : 'text-ds-text-secondary hover:text-ds-text-primary hover:bg-white/5'
               }`}
           >
-            <FileText className="inline-block mr-2 h-4 w-4" />
+            <FileText className="mr-2 h-4 w-4" />
             User Story
           </button>
         </div>
@@ -284,29 +283,32 @@ export default function UploadPage() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mb-8"
+              className="mb-8 relative z-10"
             >
-              <div className="space-y-4">
+              <div className="space-y-4 p-5 rounded-xl border border-ds-border bg-ds-bg-surface/50 backdrop-blur-md">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">{phaseLabels[scanPhase]}</span>
-                  <span className="text-cyan-400 font-medium">{progress}%</span>
+                  <span className="text-ds-text-secondary font-mono flex items-center">
+                    <Activity className="h-4 w-4 text-ds-accent-cyan mr-2 animate-pulse" />
+                    {phaseLabels[scanPhase]}
+                  </span>
+                  <span className="text-ds-accent-cyan font-bold font-syne text-lg">{progress}%</span>
                 </div>
-                <div className="relative h-2 bg-gray-800 rounded-full overflow-hidden">
+                <div className="relative h-2 bg-ds-bg-deep rounded-full overflow-hidden border border-ds-border/50">
                   <motion.div
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-500 to-blue-500"
+                    className="absolute inset-y-0 left-0 bg-ds-accent-cyan"
                     initial={{ width: 0 }}
                     animate={{ width: `${progress}%` }}
                     transition={{ duration: 0.5, ease: 'easeOut' }}
                   />
                   <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
                     animate={{ x: ['-100%', '200%'] }}
                     transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
                   />
                 </div>
-                <div className="flex items-center space-x-2 text-xs text-gray-500">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span>Scanning in progress...</span>
+                <div className="flex items-center space-x-2 text-xs text-ds-text-muted font-mono">
+                  <Loader2 className="h-3 w-3 animate-spin text-ds-accent-cyan" />
+                  <span>Scanning engine actively inspecting artifact trees...</span>
                 </div>
               </div>
             </motion.div>
@@ -320,24 +322,24 @@ export default function UploadPage() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="mb-6 rounded-lg bg-red-500/10 border border-red-500/30 p-4"
+              className="mb-6 rounded-xl bg-ds-red/10 border border-ds-red/30 p-5 relative z-10 glow-red"
             >
               <div className="flex items-start space-x-3">
-                <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="h-5 w-5 text-ds-red flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="text-sm font-medium text-red-400 mb-1">Upload Error</h3>
-                  <p className="text-sm text-red-300">{errorMessage}</p>
+                  <h3 className="text-sm font-bold text-ds-red mb-1 font-syne tracking-wide">Operation Aborted</h3>
+                  <p className="text-sm text-ds-red/80 font-mono">{errorMessage}</p>
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="relative z-10">
           {uploadMethod === 'user_story' ? (
-            <motion.div variants={fadeIn} className="space-y-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
               <div>
-                <label htmlFor="project-name" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="project-name" className="block text-sm font-semibold text-ds-text-secondary mb-2 uppercase tracking-wide">
                   Project Name
                 </label>
                 <input
@@ -345,54 +347,54 @@ export default function UploadPage() {
                   id="project-name"
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="My Secure App"
-                  className="block w-full px-4 py-3 bg-gray-900/50 border border-cyan-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 text-gray-200 placeholder-gray-500 transition-all"
+                  placeholder="E.g., ShieldX Secure Portal"
+                  className="block w-full px-4 py-3 bg-ds-bg-deep border border-ds-border rounded-lg focus:outline-none focus:border-ds-accent-cyan text-ds-text-primary placeholder-ds-text-muted transition-colors font-mono text-sm"
                   required
                 />
               </div>
               <div>
-                <label htmlFor="user-story" className="block text-sm font-medium text-gray-300 mb-2">
-                  User Story
+                <label htmlFor="user-story" className="block text-sm font-semibold text-ds-text-secondary mb-2 uppercase tracking-wide">
+                  Architectural Narrative
                 </label>
                 <textarea
                   id="user-story"
                   value={userStory}
                   onChange={(e) => setUserStory(e.target.value)}
-                  placeholder="As a user, I want to securely log in so that I can access my dashboard."
+                  placeholder="Describe the application features. ShieldX will scaffold the secure variant structure."
                   rows={8}
-                  className="block w-full px-4 py-3 bg-gray-900/50 border border-cyan-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 text-gray-200 placeholder-gray-500 transition-all resize-none"
+                  className="block w-full px-4 py-3 bg-ds-bg-deep border border-ds-border rounded-lg focus:outline-none focus:border-ds-accent-cyan text-ds-text-primary placeholder-ds-text-muted transition-colors resize-none font-mono text-sm"
                   required
                 />
-                <p className="mt-2 text-xs text-gray-400">
-                  Describe what you want to build. DevSentinel AI will generate secure code from your story.
+                <p className="mt-2 text-xs text-ds-text-muted font-mono">
+                  Input user stories to orchestrate AI-generated structurally secure templates.
                 </p>
               </div>
             </motion.div>
           ) : uploadMethod === 'zip' ? (
             <motion.div
-              variants={fadeIn}
-              className={`relative border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-300 ${isDragging
-                ? 'border-cyan-500 bg-cyan-500/10 scale-[1.02] shadow-2xl shadow-cyan-500/20'
-                : 'border-cyan-500/30 hover:border-cyan-500/50 hover:bg-cyan-500/5'
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className={`relative border-2 border-dashed rounded-2xl p-14 text-center cursor-pointer transition-all duration-300 ${isDragging
+                ? 'border-ds-accent-cyan bg-ds-accent-cyan-dim scale-[1.02] shadow-2xl'
+                : 'border-ds-border hover:border-ds-accent-cyan/50 hover:bg-ds-bg-surface'
                 }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
               <motion.div
-                animate={isDragging ? { scale: 1.1, rotate: 5 } : { scale: 1, rotate: 0 }}
+                animate={isDragging ? { scale: 1.05 } : { scale: 1 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 className="flex flex-col items-center"
               >
                 <div className="relative mb-6">
-                  <div className="absolute inset-0 bg-cyan-500/20 blur-2xl rounded-full" />
-                  <UploadIcon className="relative h-16 w-16 text-cyan-400" />
+                  <div className="absolute inset-0 bg-ds-accent-cyan opacity-20 blur-2xl rounded-full" />
+                  <UploadIcon className="relative h-16 w-16 text-ds-accent-cyan" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-200 mb-2">
-                  {isDragging ? 'Drop your file here' : 'Drag and drop your ZIP file'}
+                <h3 className="text-xl font-bold font-syne text-ds-text-primary mb-2">
+                  {isDragging ? 'Drop Artifact Here' : 'Drag & Drop ZIP Archive'}
                 </h3>
-                <p className="text-gray-400 mb-6">
-                  or click to browse files
+                <p className="text-ds-text-muted font-mono text-sm mb-8">
+                  Or select index explicitly from local filesystem
                 </p>
                 <input
                   type="file"
@@ -403,63 +405,64 @@ export default function UploadPage() {
                 />
                 <label
                   htmlFor="file-upload"
-                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-medium rounded-lg shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:shadow-cyan-500/40 transition-all cursor-pointer"
+                  className="inline-flex items-center px-8 py-3 bg-ds-accent-cyan text-black font-bold font-syne tracking-wide rounded-lg shadow-[0_0_20px_var(--ds-accent-cyan-dim)] hover:shadow-[0_0_30px_var(--ds-accent-cyan-dim)] hover:bg-[#00c9e0] transition-all cursor-pointer truncate max-w-full"
                 >
-                  <Shield className="mr-2 h-4 w-4" />
-                  Select Secure File
+                  <Shield className="mr-2 h-5 w-5" />
+                  Select Source Artifact
                 </label>
                 {file && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-6 flex items-center justify-center space-x-2 text-sm text-cyan-400 bg-cyan-500/10 px-4 py-2 rounded-lg border border-cyan-500/20"
+                    className="mt-8 flex items-center justify-center space-x-3 text-sm text-ds-accent-cyan bg-ds-bg-surface px-5 py-3 rounded-xl border border-ds-border shadow-inner"
                   >
                     <FileText className="h-4 w-4" />
-                    <span className="font-mono">{file.name}</span>
-                    <CheckCircle2 className="h-4 w-4 text-green-400" />
+                    <span className="font-mono tracking-tight font-medium max-w-[200px] truncate">{file.name}</span>
+                    <CheckCircle2 className="h-4 w-4 text-ds-accent-green" />
                   </motion.div>
                 )}
               </motion.div>
             </motion.div>
           ) : (
-            <motion.div variants={fadeIn} className="space-y-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
               <div>
-                <label htmlFor="repo-url" className="block text-sm font-medium text-gray-300 mb-2">
-                  GitHub Repository URL
+                <label htmlFor="repo-url" className="block text-sm font-semibold text-ds-text-secondary mb-2 uppercase tracking-wide">
+                  Repository URI (HTTPS)
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Github className="h-5 w-5 text-gray-500" />
+                    <Github className="h-5 w-5 text-ds-text-muted" />
                   </div>
                   <input
                     type="text"
                     id="repo-url"
                     value={repoUrl}
                     onChange={(e) => setRepoUrl(e.target.value)}
-                    placeholder="https://github.com/user/repo"
-                    className="block w-full pl-12 pr-4 py-3 bg-gray-900/50 border border-cyan-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 text-gray-200 placeholder-gray-500 transition-all"
+                    placeholder="https://github.com/organization/secure-repo.git"
+                    className="block w-full pl-12 pr-4 py-3 bg-ds-bg-deep border border-ds-border rounded-lg focus:outline-none focus:border-ds-accent-cyan text-ds-text-primary placeholder-ds-text-muted transition-colors font-mono text-sm"
                     required
                   />
                   {repoUrl && (
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                      className="absolute right-4 top-1/2 -translate-y-1/2"
                     >
-                      <div className="h-2 w-2 bg-green-400 rounded-full glow-green" />
+                      <div className="h-2 w-2 bg-ds-accent-green rounded-full glow-green" />
                     </motion.div>
                   )}
                 </div>
               </div>
-              <div className="glass rounded-lg border border-blue-500/20 p-4">
-                <div className="flex items-start space-x-3">
-                  <AlertCircle className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+              <div className="bg-ds-bg-surface rounded-xl border border-ds-border p-5 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-ds-accent-cyan glow-cyan" />
+                <div className="flex items-start space-x-3 pl-2">
+                  <AlertCircle className="h-5 w-5 text-ds-accent-cyan flex-shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="text-sm font-medium text-blue-400 mb-1">
-                      Public Repositories Only
+                    <h3 className="text-sm font-bold text-ds-text-primary mb-1 tracking-wide">
+                      Public Scope Policy
                     </h3>
-                    <p className="text-sm text-gray-400">
-                      For private repositories, configure your personal access token in settings.
+                    <p className="text-sm text-ds-text-secondary font-mono leading-relaxed mt-1 line-clamp-2 md:line-clamp-none">
+                      The current tier handles unauthenticated, open-source repositories exclusively. Private Git structures require explicitly injecting PAT configurations in user settings.
                     </p>
                   </div>
                 </div>
@@ -468,24 +471,27 @@ export default function UploadPage() {
           )}
 
           <motion.div
-            variants={slideInUp}
-            className="mt-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mt-10"
           >
             <button
               type="submit"
               disabled={appState === 'uploading' || appState === 'scanning' || (uploadMethod === 'zip' && !file) || (uploadMethod === 'github' && !repoUrl)}
-              className="w-full flex items-center justify-center py-4 px-6 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-lg shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:shadow-cyan-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all group"
+              className="w-full flex items-center justify-center py-4 px-6 bg-ds-accent-cyan text-black font-bold font-syne text-lg tracking-wide rounded-xl shadow-[0_0_20px_var(--ds-accent-cyan-dim)] hover:shadow-[0_0_30px_var(--ds-accent-cyan-dim)] hover:bg-[#00c9e0] disabled:opacity-50 disabled:cursor-not-allowed transition-all group overflow-hidden relative"
             >
               {appState === 'uploading' || appState === 'scanning' ? (
                 <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  {appState === 'uploading' ? 'Uploading...' : 'Scanning...'}
+                  <Loader2 className="mr-3 h-6 w-6 animate-spin text-black/80" />
+                  <span>Processing Artifacts...</span>
                 </>
               ) : (
                 <>
-                  <Zap className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-                  Run Security Scan
-                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]" />
+                  <Zap className="mr-2 h-6 w-6 group-hover:scale-110 transition-transform relative z-10" />
+                  <span className="relative z-10">Execute Security Scan</span>
+                  <ArrowRight className="ml-3 h-6 w-6 group-hover:translate-x-1.5 transition-transform relative z-10" />
                 </>
               )}
             </button>

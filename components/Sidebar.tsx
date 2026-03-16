@@ -4,17 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  LayoutDashboard, 
-  Upload, 
-  ShieldAlert, 
-  Clock, 
-  Wrench, 
-  Settings,
-  ChevronLeft,
-  Shield,
-  Activity
+  LayoutDashboard, Upload, ShieldAlert, Clock, Wrench, Settings, ChevronLeft, Shield, Activity
 } from 'lucide-react';
-import { sidebarVariants, fadeIn } from '@/lib/motion';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -36,7 +27,6 @@ export function Sidebar({
 
   return (
     <>
-      {/* Sidebar backdrop (mobile only) */}
       <AnimatePresence>
         {sidebarOpen && (
           <motion.div 
@@ -44,24 +34,19 @@ export function Sidebar({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
       </AnimatePresence>
 
-      {/* Sidebar component */}
       <motion.aside
-        variants={sidebarVariants}
-        animate={sidebarOpen ? 'open' : 'closed'}
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col mica-strong border-r border-gray-600/30 md:static md:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        }`}
-        style={{ width: sidebarOpen ? '280px' : '80px' }}
+        initial={false}
+        animate={{ width: sidebarOpen ? 240 : 80, x: sidebarOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth < 768 ? -240 : 0) }}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-ds-bg-card border-r border-ds-border md:static md:translate-x-0 overflow-hidden shadow-2xl`}
       >
         <div className="flex flex-col flex-1 min-h-0">
-          {/* Logo Section */}
-          <div className="flex items-center justify-between h-20 px-4 border-b border-cyan-500/20">
+          <div className="flex items-center justify-between h-16 px-4 border-b border-ds-border/50">
             <AnimatePresence mode="wait">
               {sidebarOpen ? (
                 <motion.div
@@ -70,18 +55,10 @@ export function Sidebar({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="flex items-center space-x-3"
+                  className="flex items-center space-x-3 w-full"
                 >
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-cyan-500/20 blur-xl rounded-lg" />
-                    <Shield className="h-8 w-8 text-cyan-400 relative z-10" />
-                  </div>
-                  <div>
-                    <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                      DevSentinel
-                    </h1>
-                    <p className="text-xs text-gray-400">AI Security Platform</p>
-                  </div>
+                  <Shield className="h-6 w-6 text-ds-accent-cyan" />
+                  <span className="text-lg font-bold font-syne text-ds-text-primary tracking-wide">ShieldX</span>
                 </motion.div>
               ) : (
                 <motion.div
@@ -92,103 +69,94 @@ export function Sidebar({
                   transition={{ duration: 0.2 }}
                   className="flex items-center justify-center w-full"
                 >
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-cyan-500/20 blur-xl rounded-lg" />
-                    <Shield className="h-8 w-8 text-cyan-400 relative z-10" />
-                  </div>
+                  <Shield className="h-6 w-6 text-ds-accent-cyan" />
                 </motion.div>
               )}
             </AnimatePresence>
             <button
               type="button"
-              className="md:hidden ml-2 rounded-md text-gray-400 hover:text-cyan-400 focus:outline-none transition-colors"
+              className="md:hidden ml-2 flex-shrink-0 rounded-md text-ds-text-muted hover:text-ds-accent-cyan focus:outline-none transition-colors"
               onClick={() => setSidebarOpen(false)}
             >
-              <span className="sr-only">Close sidebar</span>
-              <ChevronLeft className="h-6 w-6" aria-hidden="true" />
+              <ChevronLeft className="h-5 w-5" />
             </button>
           </div>
           
-          {/* Navigation */}
-          <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto">
-            {navigation.map((item, index) => {
-              const isActive = pathname === item.href;
+          <nav className="flex-1 px-0 py-6 space-y-2 overflow-y-auto">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/');
               return (
-                <motion.div
+                <Link
                   key={item.name}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
+                  href={item.href}
+                  className={`group relative flex items-center px-4 py-3 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'text-ds-accent-cyan bg-ds-bg-surface'
+                      : 'text-ds-text-secondary hover:text-ds-text-primary hover:bg-ds-bg-surface/50'
+                  }`}
                 >
-                  <Link
-                    href={item.href}
-                    className={`group relative flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
-                      isActive
-                        ? 'bg-microsoft-blue text-white border border-transparent shadow-lg'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-700/50 border border-transparent'
-                    }`}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeIndicator"
-                        className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-r-full"
-                        initial={false}
-                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                      />
-                    )}
-                    <item.icon
-                      className={`flex-shrink-0 h-5 w-5 ${
-                        isActive ? 'text-cyan-400' : 'text-gray-500 group-hover:text-cyan-400'
-                      } transition-colors`}
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebar-indicator"
+                      className="absolute left-0 top-0 bottom-0 w-[3px] bg-ds-accent-cyan glow-cyan"
+                      initial={false}
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                     />
-                    <AnimatePresence>
-                      {sidebarOpen && (
-                        <motion.span
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -10 }}
-                          transition={{ duration: 0.2 }}
-                          className="ml-3 truncate"
-                        >
-                          {item.name}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                    {isActive && (
-                      <motion.div
-                        className="absolute right-2 w-2 h-2 bg-cyan-400 rounded-full"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                      />
+                  )}
+                  <item.icon
+                    className={`flex-shrink-0 h-5 w-5 ${
+                      isActive ? 'text-ds-accent-cyan' : 'text-ds-text-muted group-hover:text-ds-text-primary'
+                    } transition-colors`}
+                  />
+                  <AnimatePresence>
+                    {sidebarOpen && (
+                      <motion.span
+                        initial={{ opacity: 0, width: 0 }}
+                        animate={{ opacity: 1, width: 'auto' }}
+                        exit={{ opacity: 0, width: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="ml-4 truncate whitespace-nowrap"
+                      >
+                        {item.name}
+                      </motion.span>
                     )}
-                  </Link>
-                </motion.div>
+                  </AnimatePresence>
+                </Link>
               );
             })}
           </nav>
 
-          {/* Status Indicator */}
-          <div className="px-4 py-4 border-t border-cyan-500/20">
+          {/* Security Score Ring */}
+          <div className="p-4 border-t border-ds-border/50 bg-ds-bg-card">
             <AnimatePresence>
               {sidebarOpen ? (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="flex items-center space-x-3 p-3 rounded-lg bg-gray-700/50 border border-gray-600/30"
+                  className="flex flex-col items-center justify-center space-y-4 py-2"
                 >
-                  <div className="relative">
-                    <Activity className="h-4 w-4 text-green-400" />
-                    <motion.div
-                      className="absolute inset-0 bg-green-400 rounded-full"
-                      animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-green-400">System Active</p>
-                    <p className="text-xs text-gray-500 truncate">All systems operational</p>
+                  <p className="text-xs text-ds-text-muted uppercase tracking-widest font-semibold font-syne">Security Score</p>
+                  <div className="relative w-28 h-28">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle cx="56" cy="56" r="46" stroke="var(--ds-bg-surface)" strokeWidth="6" fill="none" />
+                      <motion.circle 
+                        cx="56" cy="56" r="46" 
+                        stroke="var(--ds-accent-cyan)" 
+                        strokeWidth="6" 
+                        fill="none" 
+                        strokeDasharray="289"
+                        initial={{ strokeDashoffset: 289 }}
+                        animate={{ strokeDashoffset: 289 * (1 - 0.94) }}
+                        transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
+                        strokeLinecap="round"
+                        style={{ filter: 'drop-shadow(0 0 6px var(--ds-accent-cyan-dim))' }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center flex-col">
+                      <span className="text-2xl font-bold font-syne text-ds-text-primary">94</span>
+                      <span className="text-[10px] text-ds-accent-green font-bold">A+</span>
+                    </div>
                   </div>
                 </motion.div>
               ) : (
@@ -196,16 +164,9 @@ export function Sidebar({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-center justify-center"
+                  className="flex justify-center"
                 >
-                  <div className="relative">
-                    <Activity className="h-5 w-5 text-green-400" />
-                    <motion.div
-                      className="absolute inset-0 bg-green-400 rounded-full"
-                      animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    />
-                  </div>
+                  <Activity className="h-6 w-6 text-ds-accent-cyan" />
                 </motion.div>
               )}
             </AnimatePresence>

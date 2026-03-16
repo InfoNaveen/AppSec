@@ -1,13 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServiceRole } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth-utils';
+import { scanRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // SECURITY FIX: CSRF Origin Check
+    const origin = request.headers.get('origin');
+    if (origin && origin !== process.env.NEXT_PUBLIC_APP_URL) {
+      return NextResponse.json({ success: false, error: 'Forbidden. Invalid origin for CSRF.' }, { status: 403 });
+    }
+
     // Authenticate user
     const user = await getAuthenticatedUser(request);
     if (!user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // SECURITY FIX: Rate Limiting
+    if (scanRateLimit) {
+      const { success, reset } = await scanRateLimit.limit(user.id);
+      if (!success) {
+        return NextResponse.json({ success: false, error: 'Rate limit exceeded' }, { 
+          status: 429,
+          headers: { 'Retry-After': Math.max(0, Math.ceil((reset - Date.now()) / 1000)).toString() }
+        });
+      }
     }
 
     const body = await request.json();

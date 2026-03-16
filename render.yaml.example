@@ -16,3 +16,5 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+
+# rename this file to render.yaml and fill in your values
