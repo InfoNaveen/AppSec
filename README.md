@@ -2,39 +2,12 @@
 
 **Autonomous AppSec Engineer — scans, reasons, patches, and hardens your codebase end-to-end, without a human in the loop.**
 
-<p align="center">
-  <pre align="center">
-  ██████╗ ███████╗██╗   ██╗███████╗███████╗███╗   ██╗████████╗██╗███╗   ██╗███████╗██╗
-  ██╔══██╗██╔════╝██║   ██║██╔════╝██╔════╝████╗  ██║╚══██╔══╝██║████╗  ██║██╔════╝██║
-  ██║  ██║█████╗  ██║   ██║███████╗█████╗  ██╔██╗ ██║   ██║   ██║██╔██╗ ██║█████╗  ██║
-  ██║  ██║██╔══╝  ╚██╗ ██╔╝╚════██║██╔══╝  ██║╚██╗██║   ██║   ██║██║╚██╗██║██╔══╝  ██║
-       ██████╔╝███████╗ ╚████╔╝ ███████║███████╗██║ ╚████║   ██║   ██║██║ ╚████║███████╗███████╗
-       ╚═════╝ ╚══════╝  ╚═══╝  ╚══════╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝
-                                                                     AI  ·  v1.0.0
-  </pre>
-</p>
+### 🛡️ Autonomous, Secure-by-Design Development Platform
 
-<h3 align="center">
-  🛡️ Autonomous, Secure-by-Design Development Platform
-</h3>
+Scan · Detect · Patch · Validate — powered by a collaborative multi-agent LLM pipeline.
+Built for the **Techfest IIT Bombay AutoDev Hackathon** & **Anvil MMXXVI · P·03 · Omium Sponsored Track**.
 
-<p align="center">
-  Scan · Detect · Patch · Validate — powered by a collaborative multi-agent LLM pipeline.<br/>
-  Built for the <strong>Techfest IIT Bombay AutoDev Hackathon</strong> & <strong>Anvil MMXXVI · P·03 · Omium Sponsored Track</strong>.
-</p>
-
-<p align="center">
-  <a href="#-overview">Overview</a> ·
-  <a href="#-architecture">Architecture</a> ·
-  <a href="#-features">Features</a> ·
-  <a href="#-tech-stack">Tech Stack</a> ·
-  <a href="#-getting-started">Getting Started</a> ·
-  <a href="#-environment-variables">Env Vars</a> ·
-  <a href="#-project-structure">Structure</a> ·
-  <a href="#-multi-agent-pipeline">Agents</a> ·
-  <a href="#-security-remediation-log">Security</a> ·
-  <a href="#-deployment">Deploy</a>
-</p>
+[Overview](#-overview) · [Architecture](#-architecture) · [Features](#-features) · [Tech Stack](#-tech-stack) · [Getting Started](#-getting-started) · [Env Vars](#-environment-variables) · [Structure](#-project-structure) · [Agents](#-multi-agent-pipeline) · [Security](#-security-remediation-log) · [Deploy](#-deployment)
 
 ---
 
