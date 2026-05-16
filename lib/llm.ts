@@ -1,5 +1,5 @@
 /**
- * SecureForge AI — Unified LLM Abstraction Layer
+ * DevSentinel AI — Unified LLM Abstraction Layer
  * 
  * Priority fallback chain: Anthropic → Groq → OpenAI → Azure OpenAI
  * Selected by LLM_PROVIDER env var. If not set, auto-detect by checking

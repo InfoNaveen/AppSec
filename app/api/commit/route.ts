@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { projectId, githubToken, branchName = 'SecureForge-fixes', commitMessage = 'Apply security fixes from SecureForge AI', repoUrl } = body;
+    const { projectId, githubToken, branchName = 'DevSentinel-fixes', commitMessage = 'Apply security fixes from DevSentinel AI', repoUrl } = body;
 
     if (!projectId) {
       return NextResponse.json({ success: false, error: 'Project ID is required' }, { status: 400 });
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const projectPath = path.join(process.cwd(), 'tmp', 'SecureForge', projectId);
+    const projectPath = path.join(process.cwd(), 'tmp', 'DevSentinel', projectId);
 
     // Extract repository info from URL
     const repoInfo = extractRepoInfo(repoUrl);

@@ -70,7 +70,7 @@ export default function SettingsPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Configure your SecureForge AI preferences
+          Configure your DevSentinel AI preferences
         </p>
       </div>
 

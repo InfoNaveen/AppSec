@@ -260,7 +260,7 @@ CREATE INDEX IF NOT EXISTS idx_timeline_events_project_id ON timeline_events(pro
 CREATE INDEX IF NOT EXISTS idx_timeline_events_created_at ON timeline_events(created_at DESC);
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- SecureForge AI schema
+-- DevSentinel AI schema
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 CREATE TABLE IF NOT EXISTS sf_scans (

@@ -12,7 +12,7 @@ export async function prepareProjectFromStorage(
 ): Promise<string> {
   // Use os.tmpdir() for cross-platform compatibility
   const tmpDir = require('os').tmpdir();
-  const projectDir = path.join(tmpDir, `SecureForge-${projectId}-${Date.now()}`);
+  const projectDir = path.join(tmpDir, `DevSentinel-${projectId}-${Date.now()}`);
 
   try {
     // Create project directory

@@ -20,39 +20,24 @@ export async function GET(
       return NextResponse.json({ error: 'scanId is required' }, { status: 400 });
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-    );
+    // MOCK DEMO MODE
+    const { getMockScanProgression, MOCK_FINDINGS, MOCK_PATCHES } = require('@/lib/mock-db');
+    const scan = getMockScanProgression(scanId);
 
-    // Get scan (service role for now — user filtering optional for hackathon)
-    const { data: scan, error: scanError } = await supabase
-      .from('scans')
-      .select('*')
-      .eq('id', scanId)
-      .single();
-
-    if (scanError || !scan) {
+    if (!scan) {
       return NextResponse.json({ error: 'Scan not found' }, { status: 404 });
     }
 
-    // Get severity counts from findings
-    const { data: findings } = await supabase
-      .from('findings')
-      .select('severity')
-      .eq('scan_id', scanId);
-
     const severityCounts = {
-      critical: 0, high: 0, medium: 0, low: 0,
+      critical: 1, high: 1, medium: 1, low: 0,
     };
-    if (findings) {
-      for (const f of findings) {
-        const s = f.severity as keyof typeof severityCounts;
-        if (s in severityCounts) severityCounts[s]++;
-      }
-    }
 
-    return NextResponse.json({ scan, severityCounts });
+    return NextResponse.json({ 
+      scan, 
+      severityCounts,
+      findings: MOCK_FINDINGS,
+      patches: MOCK_PATCHES 
+    });
   } catch (err: any) {
     console.error('[Status] Error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

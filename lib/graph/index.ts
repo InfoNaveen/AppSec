@@ -1,5 +1,5 @@
 /**
- * SecureForge AI — LangGraph Pipeline Definition
+ * DevSentinel AI — LangGraph Pipeline Definition
  * 
  * Graph: mapper → scanner → triage → [remediator ‖ hardener] → reporter
  * Conditional edge at triage: if clean → skip to reporter.
@@ -40,7 +40,7 @@ const graph = new StateGraph(AgentStateAnnotation)
   .compile({ checkpointer });
 
 /**
- * Run the full SecureForge AI pipeline.
+ * Run the full DevSentinel AI pipeline.
  * This function should be called fire-and-forget from API routes.
  */
 export async function runPipeline(input: {
@@ -64,7 +64,7 @@ export async function runPipeline(input: {
 
     // Start pipeline-level span
     const pipelineSpanId = await startSpan(input.omiumTraceId, 'pipeline', {
-      agentName: 'SecureForge AI Pipeline',
+      agentName: 'DevSentinel AI Pipeline',
       metadata: { scanId: input.scanId },
     });
 

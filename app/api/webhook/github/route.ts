@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // 5. Generate IDs
     const scanId = crypto.randomUUID();
-    const omiumTraceId = 'secureforge-' + scanId;
+    const omiumTraceId = 'devsentinel-' + scanId;
 
     // 6. Clone repo
     const repoPath = path.join('/tmp', scanId);

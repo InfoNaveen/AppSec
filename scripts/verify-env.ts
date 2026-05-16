@@ -1,5 +1,5 @@
 /**
- * SecureForge AI — Environment Verification Script
+ * DevSentinel AI — Environment Verification Script
  * Run with: npx tsx scripts/verify-env.ts
  */
 import * as dotenv from 'dotenv';
@@ -39,13 +39,13 @@ async function checkLLM() {
         model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: 'You are a test assistant.' },
-          { role: 'user', content: 'Reply with exactly: SECUREFORGE_LLM_OK' },
+          { role: 'user', content: 'Reply with exactly: DEVSENTINEL_LLM_OK' },
         ],
         temperature: 0,
         max_tokens: 50,
       });
       const reply = completion.choices[0]?.message?.content || '';
-      if (reply.includes('SECUREFORGE_LLM_OK')) {
+      if (reply.includes('DEVSENTINEL_LLM_OK')) {
         log('✅', 'LLM', `Groq working — got "${reply.trim()}"`);
       } else {
         log('⚠️', 'LLM', `Groq responded but unexpected: "${reply.trim()}"`);
@@ -60,7 +60,7 @@ async function checkLLM() {
         model: 'gpt-4o',
         messages: [
           { role: 'system', content: 'You are a test assistant.' },
-          { role: 'user', content: 'Reply with exactly: SECUREFORGE_LLM_OK' },
+          { role: 'user', content: 'Reply with exactly: DEVSENTINEL_LLM_OK' },
         ],
         temperature: 0,
         max_tokens: 50,
@@ -132,7 +132,7 @@ async function checkDiscord() {
     const res = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: '🔧 SecureForge AI — environment verification test' }),
+      body: JSON.stringify({ content: '🔧 DevSentinel AI — environment verification test' }),
     });
 
     if (res.ok || res.status === 204) {
@@ -211,7 +211,7 @@ async function checkGitHub() {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'SecureForge-AI',
+        'User-Agent': 'DevSentinel-AI',
       },
     });
 
@@ -228,7 +228,7 @@ async function checkGitHub() {
 
 async function main() {
   console.log('╔══════════════════════════════════════════════════╗');
-  console.log('║   SecureForge AI — Environment Verification     ║');
+  console.log('║   DevSentinel AI — Environment Verification     ║');
   console.log('╚══════════════════════════════════════════════════╝');
 
   await checkLLM();

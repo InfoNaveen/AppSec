@@ -69,7 +69,7 @@ export default function SignupPage() {
             Create your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-400">
-            Join SecureForge AI to secure your codebase
+            Join DevSentinel AI to secure your codebase
           </p>
         </div>
         

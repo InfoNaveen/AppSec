@@ -66,7 +66,7 @@ export async function agent6Reporter(state: AgentState): Promise<Partial<AgentSt
       doc.pipe(stream);
 
       // Page 1: Header + Summary
-      doc.fontSize(24).text('SecureForge AI', { align: 'center' });
+      doc.fontSize(24).text('DevSentinel AI', { align: 'center' });
       doc.moveDown(0.5);
       doc.fontSize(12).fillColor('#666').text('Autonomous Security Assessment Report', { align: 'center' });
       doc.moveDown(1);
@@ -200,7 +200,7 @@ export async function agent6Reporter(state: AgentState): Promise<Partial<AgentSt
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             embeds: [{
-              title: '🛡️ SecureForge AI — Scan Complete',
+              title: '🛡️ DevSentinel AI — Scan Complete',
               color,
               fields: [
                 { name: 'Repository', value: state.repoUrl, inline: false },
@@ -255,13 +255,13 @@ export async function agent6Reporter(state: AgentState): Promise<Partial<AgentSt
           }
 
           if (patchedFiles.length > 0) {
-            const branch = `secureforge/scan-${state.scanId.slice(0, 8)}`;
+            const branch = `devsentinel/scan-${state.scanId.slice(0, 8)}`;
             const result = await commitToGitHub({
               token: githubToken,
               owner: repoInfo.owner,
               repo: repoInfo.repo,
               branch,
-              message: `🛡️ SecureForge AI: ${criticalCount} critical, ${highCount} high vulnerabilities patched`,
+              message: `🛡️ DevSentinel AI: ${criticalCount} critical, ${highCount} high vulnerabilities patched`,
               files: patchedFiles,
             });
             prUrl = result.prUrl || null;

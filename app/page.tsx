@@ -16,7 +16,7 @@ export default function HomePage() {
       <nav className="absolute top-0 w-full px-8 py-6 flex justify-between items-center z-50">
         <div className="text-2xl font-bold font-syne tracking-wide text-ds-text-primary flex items-center group">
           <Shield className="mr-3 h-7 w-7 text-ds-accent-cyan transition-transform group-hover:scale-110 duration-300 drop-shadow-[0_0_8px_var(--ds-accent-cyan-dim)]" />
-          SecureForge AI
+          DevSentinel AI
         </div>
         <div className="hidden md:flex space-x-10 text-[11px] font-bold tracking-widest text-ds-text-secondary uppercase">
           <Link href="#solutions" className="hover:text-ds-accent-cyan transition-colors">Frameworks</Link>
@@ -58,7 +58,7 @@ export default function HomePage() {
             </h1>
 
             <p className="text-ds-text-secondary font-mono text-sm md:text-base mb-10 max-w-xl leading-relaxed">
-              SecureForge AI operates an autonomous risk-prevention compiler for modern systems. Fortify backend architectures to eliminate injection vectors, stop zero-days natively, and enforce security policies before merging branches.
+              DevSentinel AI operates an autonomous risk-prevention compiler for modern systems. Fortify backend architectures to eliminate injection vectors, stop zero-days natively, and enforce security policies before merging branches.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-5">

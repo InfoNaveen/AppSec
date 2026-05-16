@@ -23,8 +23,8 @@ interface ScanResultsProps {
 
 export default function ScanResults({ findings, patches, projectId }: ScanResultsProps) {
   const [githubToken, setGithubToken] = useState('');
-  const [branchName, setBranchName] = useState('SecureForge-fixes');
-  const [commitMessage, setCommitMessage] = useState('Apply security fixes from SecureForge AI');
+  const [branchName, setBranchName] = useState('DevSentinel-fixes');
+  const [commitMessage, setCommitMessage] = useState('Apply security fixes from DevSentinel AI');
   const [exportMethod, setExportMethod] = useState<'zip' | 'github'>('zip');
 
   const getSeverityColor = (severity: string) => {
@@ -240,7 +240,7 @@ export default function ScanResults({ findings, patches, projectId }: ScanResult
                   type="text"
                   value={branchName}
                   onChange={(e) => setBranchName(e.target.value)}
-                  placeholder="SecureForge-fixes"
+                  placeholder="DevSentinel-fixes"
                   className="w-full p-2 bg-gray-700 rounded-md border border-gray-600"
                 />
               </div>
@@ -251,7 +251,7 @@ export default function ScanResults({ findings, patches, projectId }: ScanResult
                 type="text"
                 value={commitMessage}
                 onChange={(e) => setCommitMessage(e.target.value)}
-                placeholder="Apply security fixes from SecureForge AI"
+                placeholder="Apply security fixes from DevSentinel AI"
                 className="w-full p-2 bg-gray-700 rounded-md border border-gray-600"
               />
             </div>

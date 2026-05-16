@@ -328,7 +328,7 @@ export default function UploadPage() {
                   id="project-name"
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="E.g., SecureForge AI Secure Portal"
+                  placeholder="E.g., DevSentinel AI Secure Portal"
                   className="block w-full px-4 py-3 bg-ds-bg-deep border border-ds-border rounded-lg focus:outline-none focus:border-ds-accent-cyan text-ds-text-primary placeholder-ds-text-muted transition-colors font-mono text-sm"
                   required
                 />
@@ -341,7 +341,7 @@ export default function UploadPage() {
                   id="user-story"
                   value={userStory}
                   onChange={(e) => setUserStory(e.target.value)}
-                  placeholder="Describe the application features. SecureForge AI will scaffold the secure variant structure."
+                  placeholder="Describe the application features. DevSentinel AI will scaffold the secure variant structure."
                   rows={8}
                   className="block w-full px-4 py-3 bg-ds-bg-deep border border-ds-border rounded-lg focus:outline-none focus:border-ds-accent-cyan text-ds-text-primary placeholder-ds-text-muted transition-colors resize-none font-mono text-sm"
                   required

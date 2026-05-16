@@ -1,4 +1,4 @@
-# 🛡️ SecureForge AI
+# 🛡️ DevSentinel AI
 
 **Autonomous AppSec Engineer — scans, reasons, patches, and hardens your codebase end-to-end, without a human in the loop.**
 
@@ -40,7 +40,7 @@
 
 ## What It Does
 
-SecureForge AI is a fully autonomous, multi-agent security pipeline powered by LangGraph. Point it at any Python repository and it will:
+DevSentinel AI is a fully autonomous, multi-agent security pipeline powered by LangGraph. Point it at any Python repository and it will:
 
 1. **Map** — Walk the codebase, detect framework, identify attack surface via LLM
 2. **Scan** — Run Semgrep, Bandit, pip-audit + LLM-powered analysis for logic flaws

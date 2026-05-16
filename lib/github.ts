@@ -134,7 +134,7 @@ export async function commitToGitHub(options: GitHubCommitOptions): Promise<{ pr
       title: options.message,
       head: options.branch,
       base: baseRef.ref.replace('refs/heads/', ''), // Use the same branch name as baseRef
-      body: 'Automated security fixes from SecureForge AI'
+      body: 'Automated security fixes from DevSentinel AI'
     });
 
     return {

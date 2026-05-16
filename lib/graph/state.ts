@@ -1,5 +1,5 @@
 /**
- * SecureForge AI — LangGraph State Definition
+ * DevSentinel AI — LangGraph State Definition
  */
 import { Annotation } from '@langchain/langgraph';
 

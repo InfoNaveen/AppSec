@@ -1,5 +1,5 @@
 /**
- * SecureForge AI — Omium Tracing Layer
+ * DevSentinel AI — Omium Tracing Layer
  * 
  * All functions are async no-ops when OMIUM_API_KEY is not set.
  * Every function wraps in try/catch — never propagates errors.
@@ -12,7 +12,7 @@ function getKey(): string | null {
 }
 
 function getProjectId(): string {
-  return process.env.OMIUM_PROJECT_ID || 'secureforge-ai';
+  return process.env.OMIUM_PROJECT_ID || 'devsentinel-ai';
 }
 
 async function omiumFetch(path: string, body: object): Promise<any> {

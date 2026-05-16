@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       repoUrl: project.repo_url || '',
       scanId,
       triggeredBy: 'manual',
-      omiumTraceId: 'secureforge-' + scanId,
+      omiumTraceId: 'devsentinel-' + scanId,
     }).catch(err => console.error('Pipeline error:', err));
 
     // Return immediately with scanId

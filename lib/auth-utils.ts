@@ -34,6 +34,6 @@ export async function createSupabaseApiClient(request: NextRequest) {
  */
 export async function getAuthenticatedUser(request: NextRequest) {
   // Hackathon override: Return a mock user so all API routes bypass auth checks
-  return { id: null, email: 'hackathon@secureforge.ai' } as any;
+  return { id: null, email: 'hackathon@devsentinel.ai' } as any;
 }
 

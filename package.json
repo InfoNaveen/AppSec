@@ -1,5 +1,5 @@
 {
-  "name": "secureforge-ai",
+  "name": "devsentinel-ai",
   "version": "1.0.0",
   "description": "Autonomous AppSec Engineer",
   "main": "index.js",
@@ -16,7 +16,7 @@
     "devops",
     "autonomous"
   ],
-  "author": "SecureForge AI Team",
+  "author": "DevSentinel AI Team",
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",

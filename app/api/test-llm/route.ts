@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const response = await callLLM(
       'You are a test assistant.',
-      'Reply with exactly: "SecureForge AI LLM OK"'
+      'Reply with exactly: "DevSentinel AI LLM OK"'
     );
 
     return NextResponse.json({

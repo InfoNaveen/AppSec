@@ -34,8 +34,20 @@ export default function PatchesPage() {
       try {
         const res = await fetch(`/api/scan/status/${scanId}`);
         if (!res.ok) { setLoading(false); return; }
-        // Fetch patches via a direct query (using the scan results page approach)
-        // For now, try to get patch data from the scan status + patches table
+        const data = await res.json();
+        if (data.patches) {
+          // Map to PatchData
+          const mappedPatches = data.patches.map((p: any) => ({
+            id: p.id || p.findingId,
+            file: p.filePath || p.file,
+            before: p.originalCode || p.before,
+            after: p.patchedCode || p.after,
+            change: p.patchType === 'dependency' ? 'Dependency upgrade required' : 'Security patch applied',
+            patchType: p.patchType,
+            findingId: p.findingId,
+          }));
+          setPatches(mappedPatches);
+        }
         setLoading(false);
       } catch { setLoading(false); }
     }

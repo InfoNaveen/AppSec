@@ -1,5 +1,5 @@
 /**
- * SecureForge AI — Startup validation
+ * DevSentinel AI — Startup validation
  * Ensures at least one LLM API key is configured before the app starts.
  */
 export async function register() {
@@ -11,7 +11,7 @@ export async function register() {
 
     if (!hasAnthropic && !hasGroq && !hasOpenAI && !hasAzure) {
       console.error(
-        '\n⚠️  SecureForge AI: No LLM API key found!\n' +
+        '\n⚠️  DevSentinel AI: No LLM API key found!\n' +
         '   Set at least one of: ANTHROPIC_API_KEY, GROQ_API_KEY, OPENAI_API_KEY, AZURE_OPENAI_API_KEY\n'
       );
       // Don't throw — allow app to start for UI development, but warn loudly
@@ -22,7 +22,7 @@ export async function register() {
         hasOpenAI && 'OpenAI',
         hasAzure && 'Azure',
       ].filter(Boolean);
-      console.log(`✅ SecureForge AI: LLM providers available: ${active.join(', ')}`);
+      console.log(`✅ DevSentinel AI: LLM providers available: ${active.join(', ')}`);
     }
   }
 }

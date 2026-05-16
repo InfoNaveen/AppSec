@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     // For export, we'll need to download from storage
     // For now, using /tmp which works on Vercel
-    const projectPath = path.join('/tmp', `SecureForge-${projectId}`);
+    const projectPath = path.join('/tmp', `DevSentinel-${projectId}`);
     
     // Note: In production, this should load from storage
     // For now, this is a placeholder - the actual patching should happen during orchestration

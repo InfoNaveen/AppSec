@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     // Prepare project directory
     const tmpDir = require('os').tmpdir();
-    projectDir = path.join(tmpDir, `SecureForge-${projectId}-${Date.now()}`);
+    projectDir = path.join(tmpDir, `DevSentinel-${projectId}-${Date.now()}`);
     await fs.mkdir(projectDir, { recursive: true });
 
     // Handle user story code generation
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
       repoUrl: project.repo_url || '',
       scanId,
       triggeredBy: 'manual',
-      omiumTraceId: 'secureforge-' + scanId,
+      omiumTraceId: 'devsentinel-' + scanId,
     }).catch(err => console.error('Pipeline error:', err));
 
     return NextResponse.json({

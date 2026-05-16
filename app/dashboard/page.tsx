@@ -197,7 +197,7 @@ export default function DashboardClient() {
     <div className="max-w-7xl mx-auto pb-12">
       <div className="mb-10">
         <h1 className="text-3xl font-bold font-syne text-ds-text-primary tracking-wide">Command Center</h1>
-        <p className="mt-2 text-ds-text-secondary font-mono text-sm">SecureForge AI autonomous security operations dashboard.</p>
+        <p className="mt-2 text-ds-text-secondary font-mono text-sm">DevSentinel AI autonomous security operations dashboard.</p>
       </div>
 
       {/* Manual Trigger */}
