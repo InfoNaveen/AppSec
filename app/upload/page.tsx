@@ -128,7 +128,7 @@ export default function UploadPage() {
         setPatches(scanData.patches);
         setAppState('showing-results');
       } else if (uploadMethod === 'github' && repoUrl) {
-        const response = await fetch('/api/upload', {
+        const response = await fetch('/api/scan/trigger', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -137,31 +137,12 @@ export default function UploadPage() {
         });
 
         const data = await response.json();
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || 'Repository clone failed');
+        if (!response.ok) {
+          throw new Error(data.error || 'Scan trigger failed');
         }
 
-        setProjectId(data.projectId);
-        setAppState('scanning');
-        setScanPhase('fetching');
-        simulateProgress();
-
-        const scanResponse = await fetch('/api/scan', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ projectId: data.projectId }),
-        });
-
-        const scanData = await scanResponse.json();
-        if (!scanResponse.ok || !scanData.success) {
-          throw new Error(scanData.error || 'Scan failed');
-        }
-
-        setScanResults(scanData.findings);
-        setPatches(scanData.patches);
-        setAppState('showing-results');
+        router.push('/dashboard');
+        return;
       } else if (uploadMethod === 'user_story' && userStory && projectName) {
         const formData = new FormData();
         formData.append('userStory', userStory);
@@ -347,7 +328,7 @@ export default function UploadPage() {
                   id="project-name"
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="E.g., ShieldX Secure Portal"
+                  placeholder="E.g., SecureForge AI Secure Portal"
                   className="block w-full px-4 py-3 bg-ds-bg-deep border border-ds-border rounded-lg focus:outline-none focus:border-ds-accent-cyan text-ds-text-primary placeholder-ds-text-muted transition-colors font-mono text-sm"
                   required
                 />
@@ -360,7 +341,7 @@ export default function UploadPage() {
                   id="user-story"
                   value={userStory}
                   onChange={(e) => setUserStory(e.target.value)}
-                  placeholder="Describe the application features. ShieldX will scaffold the secure variant structure."
+                  placeholder="Describe the application features. SecureForge AI will scaffold the secure variant structure."
                   rows={8}
                   className="block w-full px-4 py-3 bg-ds-bg-deep border border-ds-border rounded-lg focus:outline-none focus:border-ds-accent-cyan text-ds-text-primary placeholder-ds-text-muted transition-colors resize-none font-mono text-sm"
                   required

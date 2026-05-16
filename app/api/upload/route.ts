@@ -23,7 +23,7 @@ function isZipFile(buffer: Buffer): boolean {
 }
 
 /**
- * Cleanup old devsentinel dirs in tmp
+ * Cleanup old SecureForge dirs in tmp
  */
 async function cleanupOldTmpDirs() {
   try {
@@ -33,7 +33,7 @@ async function cleanupOldTmpDirs() {
     const maxAge = 60 * 60 * 1000; // 1 hour
     
     for (const entry of entries) {
-      if (entry.isDirectory() && entry.name.startsWith('devsentinel-')) {
+      if (entry.isDirectory() && entry.name.startsWith('SecureForge-')) {
         const fullPath = path.join(tmpDir, entry.name);
         try {
           const stats = await fs.stat(fullPath);
@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
 
       const projectId = project.id;
       const tmpDir = os.tmpdir();
-      const cloneDir = path.join(tmpDir, `devsentinel-${projectId}-${Date.now()}`);
+      const cloneDir = path.join(tmpDir, `SecureForge-${projectId}-${Date.now()}`);
 
       try {
         // SECURITY FIX: Command Injection Fix

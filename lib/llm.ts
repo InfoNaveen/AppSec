@@ -1,324 +1,178 @@
-import { NextRequest } from 'next/server';
+/**
+ * SecureForge AI — Unified LLM Abstraction Layer
+ * 
+ * Priority fallback chain: Anthropic → Groq → OpenAI → Azure OpenAI
+ * Selected by LLM_PROVIDER env var. If not set, auto-detect by checking
+ * which key is present in env (in priority order above).
+ */
 
-interface LLMCallOptions {
-  provider: 'openrouter' | 'gemini' | 'groq' | 'together' | 'azure';
-  model: string;
-  messages: Array<{
-    role: 'system' | 'user' | 'assistant';
-    content: string;
-  }>;
-  temperature?: number;
-  maxTokens?: number;
-  tools?: Array<any>;
-  tool_choice?: string;
+import Anthropic from '@anthropic-ai/sdk';
+import Groq from 'groq-sdk';
+import OpenAI from 'openai';
+
+// ── Provider detection ──────────────────────────────────────────────────
+
+type Provider = 'anthropic' | 'groq' | 'openai' | 'azure';
+
+const PROVIDER_PRIORITY: Provider[] = ['anthropic', 'groq', 'openai', 'azure'];
+
+function detectProvider(): Provider {
+  const explicit = process.env.LLM_PROVIDER?.toLowerCase() as Provider | undefined;
+  if (explicit && PROVIDER_PRIORITY.includes(explicit)) return explicit;
+
+  // Auto-detect by checking which key is present
+  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
+  if (process.env.GROQ_API_KEY) return 'groq';
+  if (process.env.OPENAI_API_KEY) return 'openai';
+  if (process.env.AZURE_OPENAI_API_KEY) return 'azure';
+
+  return 'anthropic'; // default
 }
 
-interface ProviderConfig {
-  url: (model: string) => string;
-  headers: () => Record<string, string>;
-  formatMessages: (messages: LLMCallOptions['messages']) => any;
-  formatTools?: (tools: any[]) => any;
-  extractResponse: (data: any) => string | null;
-  extractToolCalls?: (data: any) => any[] | null;
+function getProviderChain(): Provider[] {
+  const primary = detectProvider();
+  // Build chain: primary first, then remaining in priority order
+  const chain = [primary, ...PROVIDER_PRIORITY.filter(p => p !== primary)];
+  // Filter to only providers that have keys configured
+  return chain.filter(p => {
+    switch (p) {
+      case 'anthropic': return !!process.env.ANTHROPIC_API_KEY;
+      case 'groq': return !!process.env.GROQ_API_KEY;
+      case 'openai': return !!process.env.OPENAI_API_KEY;
+      case 'azure': return !!process.env.AZURE_OPENAI_API_KEY && !!process.env.AZURE_OPENAI_ENDPOINT;
+      default: return false;
+    }
+  });
 }
 
-// SECURITY FIX: API Env Checks startup validation
-export function validateEnv() {
-  if (!process.env.OPENROUTER_API_KEY) throw new Error('OPENROUTER_API_KEY is missing');
-  if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is missing');
-  if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY is missing');
-  if (!process.env.TOGETHER_API_KEY) throw new Error('TOGETHER_API_KEY is missing');
-  if (!process.env.AZURE_OPENAI_API_KEY) throw new Error('AZURE_OPENAI_API_KEY is missing');
+// ── Provider implementations ────────────────────────────────────────────
+
+async function callAnthropic(systemPrompt: string, userPrompt: string, json: boolean): Promise<string> {
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+  const system = json
+    ? systemPrompt + '\n\nIMPORTANT: Return only valid JSON. No markdown fences, no explanation text outside the JSON.'
+    : systemPrompt;
+
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 4096,
+    system,
+    messages: [{ role: 'user', content: userPrompt }],
+  });
+
+  const block = message.content[0];
+  if (block.type === 'text') return block.text;
+  throw new Error('Anthropic returned non-text content');
 }
 
-const providerConfigs: Record<string, ProviderConfig> = {
-  openrouter: {
-    url: () => 'https://openrouter.ai/api/v1/chat/completions',
-    headers: () => ({
-      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-      'X-Title': 'DevSentinel AI',
-      'Content-Type': 'application/json'
-    }),
-    formatMessages: (messages) => messages,
-    formatTools: (tools) => tools,
-    extractResponse: (data) => {
-      if (data && data.choices && data.choices[0] && data.choices[0].message) {
-        return data.choices[0].message.content;
-      }
-      return null;
-    },
-    extractToolCalls: (data) => {
-      if (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.tool_calls) {
-        return data.choices[0].message.tool_calls;
-      }
-      return null;
-    }
-  },
-  gemini: {
-    url: (model) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    headers: () => ({
-      'Content-Type': 'application/json'
-    }),
-    formatMessages: (messages) => ({
-      contents: messages.map(msg => ({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }]
-      }))
-    }),
-    formatTools: (tools) => {
-      return {
-        function_declarations: tools.map(tool => ({
-          name: tool.function.name,
-          description: tool.function.description,
-          parameters: tool.function.parameters
-        }))
-      };
-    },
-    extractResponse: (data) => {
-      if (data && data.candidates && data.candidates[0] && data.candidates[0].content) {
-        return data.candidates[0].content.parts[0].text;
-      }
-      return null;
-    },
-    extractToolCalls: (data) => {
-      if (data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
-        const functionCalls = data.candidates[0].content.parts
-          .filter((part: any) => part.functionCall)
-          .map((part: any) => ({
-            function: {
-              name: part.functionCall.name,
-              arguments: JSON.stringify(part.functionCall.args)
-            }
-          }));
-        return functionCalls.length > 0 ? functionCalls : null;
-      }
-      return null;
-    }
-  },
-  groq: {
-    url: () => 'https://api.groq.com/openai/v1/chat/completions',
-    headers: () => ({
-      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-      'Content-Type': 'application/json'
-    }),
-    formatMessages: (messages) => messages,
-    formatTools: (tools) => tools,
-    extractResponse: (data) => {
-      if (data && data.choices && data.choices[0] && data.choices[0].message) {
-        return data.choices[0].message.content;
-      }
-      return null;
-    },
-    extractToolCalls: (data) => {
-      if (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.tool_calls) {
-        return data.choices[0].message.tool_calls;
-      }
-      return null;
-    }
-  },
-  together: {
-    url: () => 'https://api.together.xyz/v1/chat/completions',
-    headers: () => ({
-      'Authorization': `Bearer ${process.env.TOGETHER_API_KEY}`,
-      'Content-Type': 'application/json'
-    }),
-    formatMessages: (messages) => messages,
-    formatTools: (tools) => tools,
-    extractResponse: (data) => {
-      if (data && data.choices && data.choices[0] && data.choices[0].message) {
-        return data.choices[0].message.content;
-      }
-      return null;
-    },
-    extractToolCalls: (data) => {
-      if (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.tool_calls) {
-        return data.choices[0].message.tool_calls;
-      }
-      return null;
-    }
-  },
-  azure: {
-    url: () => `${process.env.AZURE_OPENAI_ENDPOINT || 'https://YOUR_RESOURCE_NAME.openai.azure.com'}/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'YOUR_DEPLOYMENT_NAME'}/chat/completions?api-version=2024-06-01`,
-    headers: () => ({
-      'api-key': `${process.env.AZURE_OPENAI_API_KEY}`,
-      'Content-Type': 'application/json'
-    }),
-    formatMessages: (messages) => messages,
-    formatTools: (tools) => tools,
-    extractResponse: (data) => {
-      if (data && data.choices && data.choices[0] && data.choices[0].message) {
-        return data.choices[0].message.content;
-      }
-      return null;
-    },
-    extractToolCalls: (data) => {
-      if (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.tool_calls) {
-        return data.choices[0].message.tool_calls;
-      }
-      return null;
-    }
-  }
+async function callGroq(systemPrompt: string, userPrompt: string, json: boolean): Promise<string> {
+  const client = new Groq({ apiKey: process.env.GROQ_API_KEY! });
+  const system = json
+    ? systemPrompt + '\n\nIMPORTANT: Return only valid JSON. No markdown fences, no explanation text outside the JSON.'
+    : systemPrompt;
+
+  const completion = await client.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0.2,
+    max_tokens: 4096,
+    ...(json ? { response_format: { type: 'json_object' } } : {}),
+  });
+
+  return completion.choices[0]?.message?.content || '';
+}
+
+async function callOpenAI(systemPrompt: string, userPrompt: string, json: boolean): Promise<string> {
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+  const system = json
+    ? systemPrompt + '\n\nIMPORTANT: Return only valid JSON. No markdown fences, no explanation text outside the JSON.'
+    : systemPrompt;
+
+  const completion = await client.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0.2,
+    max_tokens: 4096,
+    ...(json ? { response_format: { type: 'json_object' } } : {}),
+  });
+
+  return completion.choices[0]?.message?.content || '';
+}
+
+async function callAzure(systemPrompt: string, userPrompt: string, json: boolean): Promise<string> {
+  const client = new OpenAI({
+    apiKey: process.env.AZURE_OPENAI_API_KEY!,
+    baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT_NAME}`,
+    defaultQuery: { 'api-version': '2024-02-15-preview' },
+    defaultHeaders: { 'api-key': process.env.AZURE_OPENAI_API_KEY! },
+  });
+
+  const system = json
+    ? systemPrompt + '\n\nIMPORTANT: Return only valid JSON. No markdown fences, no explanation text outside the JSON.'
+    : systemPrompt;
+
+  const completion = await client.chat.completions.create({
+    model: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'gpt-4o',
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0.2,
+    max_tokens: 4096,
+    ...(json ? { response_format: { type: 'json_object' } } : {}),
+  });
+
+  return completion.choices[0]?.message?.content || '';
+}
+
+// ── Exported callLLM function ───────────────────────────────────────────
+
+const PROVIDER_FNS: Record<Provider, (s: string, u: string, j: boolean) => Promise<string>> = {
+  anthropic: callAnthropic,
+  groq: callGroq,
+  openai: callOpenAI,
+  azure: callAzure,
 };
 
-export async function callLLM({
-  provider,
-  model,
-  messages,
-  temperature = 0.7,
-  maxTokens = 2048,
-  tools,
-  tool_choice
-}: LLMCallOptions): Promise<string> {
-  try {
-    const config = providerConfigs[provider];
-    if (!config) {
-      throw new Error(`Unsupported provider`);
-    }
+/**
+ * Call LLM with automatic provider fallback chain.
+ * 
+ * @param systemPrompt - System instructions for the LLM
+ * @param userPrompt - User/task prompt
+ * @param options.json - If true, instruct model to return only valid JSON
+ * @returns LLM response string
+ * @throws Error if all providers fail
+ */
+export async function callLLM(
+  systemPrompt: string,
+  userPrompt: string,
+  options?: { json?: boolean }
+): Promise<string> {
+  const json = options?.json ?? false;
+  const chain = getProviderChain();
 
-    const url = config.url(model);
-    const headers = config.headers();
-
-    const requestBody: any = {
-      model,
-      messages: config.formatMessages(messages),
-      temperature,
-      max_tokens: maxTokens
-    };
-    
-    // Add tools if provided
-    if (tools && tools.length > 0) {
-      requestBody.tools = config.formatTools ? config.formatTools(tools) : tools;
-      if (tool_choice) {
-        requestBody.tool_choice = tool_choice;
-      }
-    };
-
-    // Remove model from body for Gemini as it's in the URL
-    if (provider === 'gemini') {
-      delete requestBody.model;
-    }
-
-    // Add timeout to fetch request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(requestBody),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`LLM API error (${response.status})`);
-    }
-
-    const data = await response.json();
-    const content = config.extractResponse(data);
-
-    if (!content) {
-      // Check if there are tool calls
-      if (config.extractToolCalls) {
-        const toolCalls = config.extractToolCalls(data);
-        if (toolCalls && toolCalls.length > 0) {
-          // Return tool calls as JSON string
-          return JSON.stringify({ tool_calls: toolCalls });
-        }
-      }
-      
-      throw new Error('No content returned from LLM');
-    }
-
-    return content;
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
-      throw new Error(`LLM call timed out. Please try again.`);
-    }
-    // SECURITY FIX: Never expose which keys are missing in API responses
-    throw new Error(`Failed to call LLM.`);
+  if (chain.length === 0) {
+    throw new Error('All LLM providers failed: no API keys configured');
   }
-}
 
-export async function callLLMWithTools({
-  provider,
-  model,
-  messages,
-  tools,
-  tool_choice = 'auto',
-  temperature = 0.7,
-  maxTokens = 2048
-}: Omit<LLMCallOptions, 'tools' | 'tool_choice'> & { tools: Array<any>, tool_choice?: string }): Promise<any> {
-  try {
-    const config = providerConfigs[provider];
-    if (!config) {
-      throw new Error(`Unsupported provider`);
+  const errors: string[] = [];
+
+  for (const provider of chain) {
+    try {
+      const result = await PROVIDER_FNS[provider](systemPrompt, userPrompt, json);
+      return result;
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      console.error(`[callLLM] ${provider} failed: ${msg}`);
+      errors.push(`${provider}: ${msg}`);
     }
-
-    const url = config.url(model);
-    const headers = config.headers();
-
-    const requestBody: any = {
-      model,
-      messages: config.formatMessages(messages),
-      temperature,
-      max_tokens: maxTokens
-    };
-    
-    // Add tools
-    if (tools && tools.length > 0) {
-      requestBody.tools = config.formatTools ? config.formatTools(tools) : tools;
-      if (tool_choice) {
-        requestBody.tool_choice = tool_choice;
-      }
-    };
-
-    // Remove model from body for Gemini as it's in the URL
-    if (provider === 'gemini') {
-      delete requestBody.model;
-    }
-
-    // Add timeout to fetch request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(requestBody),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`LLM API error (${response.status})`);
-    }
-
-    const data = await response.json();
-    
-    // Check if there are tool calls
-    if (config.extractToolCalls) {
-      const toolCalls = config.extractToolCalls(data);
-      if (toolCalls && toolCalls.length > 0) {
-        return { tool_calls: toolCalls, message: data };
-      }
-    }
-    
-    // Otherwise return regular content
-    const content = config.extractResponse(data);
-    
-    if (!content) {
-      throw new Error('No content returned from LLM');
-    }
-
-    return { content };
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
-      throw new Error(`LLM call timed out. Please try again.`);
-    }
-    throw new Error(`Failed to call LLM.`);
   }
+
+  throw new Error(`All LLM providers failed:\n${errors.join('\n')}`);
 }

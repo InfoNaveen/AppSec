@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runOrchestrator } from '@/lib/orchestrator';
+// Legacy orchestrator removed — scans now go through the LangGraph pipeline
+import { runPipeline } from '@/lib/graph/index';
 import { supabaseServiceRole } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth-utils';
 import { prepareProjectFromStorage, cleanupProjectDir } from '@/lib/project-utils';
@@ -53,111 +54,43 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Run the orchestrator
-    const result = await runOrchestrator(projectDir);
+    // Enqueue the new LangGraph pipeline instead of the old orchestrator
+    const crypto = require('crypto');
+    const scanId = crypto.randomUUID();
+    const checkpointId = crypto.randomUUID();
 
-    // Validate orchestrator result
-    if (!result || !result.findings || !result.patches) {
-      return NextResponse.json({ success: false, error: 'Invalid orchestrator result' }, { status: 500 });
-    }
-
-    // Count severities
-    const severityCounts = {
-      high: result.findings.filter(f => f.severity === 'high').length,
-      medium: result.findings.filter(f => f.severity === 'medium').length,
-      low: result.findings.filter(f => f.severity === 'low').length
-    };
-
-    // Create scan record
-    const { data: scan, error: scanError } = await supabase
+    // Insert scan row for the new pipeline
+    const { error: insertError } = await supabase
       .from('scans')
-      .insert([
-        {
-          project_id: projectId,
-          severity_counts: severityCounts
-        }
-      ])
-      .select()
-      .single();
+      .insert({
+        id: scanId,
+        project_id: projectId,
+        repo_url: project.repo_url || `project://${projectId}`,
+        status: 'queued',
+        triggered_by: 'legacy_scan',
+        current_agent: 'queued',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
 
-    if (scanError) {
-      console.error('Error creating scan:', scanError);
+    if (insertError) {
       return NextResponse.json({ success: false, error: 'Failed to create scan record' }, { status: 500 });
     }
 
-    // Store vulnerabilities
-    let vulnerabilityIds: Record<string, string> = {};
-    if (scan && result.findings.length > 0) {
-      const vulnerabilities = result.findings.map(finding => ({
-        scan_id: scan.id,
-        severity: finding.severity,
-        file_path: finding.file,
-        line_number: finding.line,
-        description: finding.type,
-        code_snippet: finding.snippet
-      }));
+    // Fire pipeline — DO NOT await
+    runPipeline({
+      repoPath: projectDir || '',
+      repoUrl: project.repo_url || '',
+      scanId,
+      triggeredBy: 'manual',
+      omiumTraceId: 'secureforge-' + scanId,
+    }).catch(err => console.error('Pipeline error:', err));
 
-      const { data: insertedVulns, error: vulnError } = await supabase
-        .from('vulnerabilities')
-        .insert(vulnerabilities)
-        .select('id, file_path, line_number');
-
-      if (vulnError) {
-        console.error('Error storing vulnerabilities:', vulnError);
-        return NextResponse.json({ success: false, error: 'Failed to store vulnerabilities' }, { status: 500 });
-      }
-
-      // Create a map for patch association
-      if (insertedVulns) {
-        insertedVulns.forEach(vuln => {
-          const key = `${vuln.file_path}:${vuln.line_number}`;
-          vulnerabilityIds[key] = vuln.id;
-        });
-      }
-    }
-
-    // Store patches
-    if (scan && result.patches.length > 0) {
-      const patches = result.patches.map(patch => {
-        const matchingKey = Object.keys(vulnerabilityIds).find(key => 
-          key.startsWith(patch.file + ':')
-        );
-        
-        return {
-          scan_id: scan.id,
-          vulnerability_id: matchingKey ? vulnerabilityIds[matchingKey] : null,
-          before_code: patch.before || null,
-          after_code: patch.after || null
-        };
-      }).filter(p => p.vulnerability_id);
-
-      if (patches.length > 0) {
-        const { error: patchError } = await supabase
-          .from('patches')
-          .insert(patches);
-
-        if (patchError) {
-          console.error('Error storing patches:', patchError);
-        }
-      }
-    }
-
-    // Log timeline event
-    await supabase
-      .from('timeline_events')
-      .insert([
-        {
-          project_id: projectId,
-          event_type: 'scan_complete',
-          event_message: `Scan completed with ${result.findings.length} findings`
-        }
-      ]);
-
+    // Return immediately with scanId
     return NextResponse.json({
       success: true,
-      findings: result.findings,
-      patches: result.patches,
-      scanId: scan?.id
+      scanId,
+      message: 'Pipeline enqueued — poll /api/scan/status/' + scanId + ' for progress',
     });
   } catch (error: any) {
     console.error('Scan error:', error);

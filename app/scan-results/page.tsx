@@ -1,18 +1,8 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
-import {
-  Download,
-  Wrench,
-  AlertTriangle,
-  CheckCircle,
-  Shield,
-  TrendingUp,
-  FileCode
-} from 'lucide-react';
 import Link from 'next/link';
-import { VulnerabilityTable } from '@/components/VulnerabilityTable';
 import ScanResultsClient from './ScanResultsClient';
 
-// Server component - fetches data directly from Supabase
+// Server component - fetches data from new findings/patches tables
 export default async function ScanResultsServerPage({ searchParams }: { searchParams: { scanId?: string } }) {
   const scanId = searchParams.scanId;
 
@@ -20,12 +10,12 @@ export default async function ScanResultsServerPage({ searchParams }: { searchPa
     return (
       <div className="max-w-7xl mx-auto py-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Scan Results Not Found</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+          <h1 className="text-3xl font-bold text-ds-text-primary mb-4 font-syne">Scan Results Not Found</h1>
+          <p className="text-ds-text-secondary mb-6">
             Please select a scan to view results.
           </p>
           <Link href="/dashboard">
-            <button className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+            <button className="px-5 py-2.5 bg-ds-accent-cyan text-black font-bold font-syne rounded-lg">
               Back to Dashboard
             </button>
           </Link>
@@ -34,16 +24,12 @@ export default async function ScanResultsServerPage({ searchParams }: { searchPa
     );
   }
 
-  // Initialize Supabase client
   const supabase = await createSupabaseServerClient();
 
   // Fetch scan details
   const { data: scan, error: scanError } = await supabase
     .from('scans')
-    .select(`
-      *,
-      projects(name)
-    `)
+    .select('*')
     .eq('id', scanId)
     .single();
 
@@ -51,12 +37,10 @@ export default async function ScanResultsServerPage({ searchParams }: { searchPa
     return (
       <div className="max-w-7xl mx-auto py-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Scan Not Found</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            The requested scan could not be found.
-          </p>
+          <h1 className="text-3xl font-bold text-ds-text-primary mb-4 font-syne">Scan Not Found</h1>
+          <p className="text-ds-text-secondary mb-6">The requested scan could not be found.</p>
           <Link href="/dashboard">
-            <button className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+            <button className="px-5 py-2.5 bg-ds-accent-cyan text-black font-bold font-syne rounded-lg">
               Back to Dashboard
             </button>
           </Link>
@@ -65,54 +49,53 @@ export default async function ScanResultsServerPage({ searchParams }: { searchPa
     );
   }
 
-  // Fetch vulnerabilities for this scan
-  const { data: vulnerabilities, error: vulnError } = await supabase
-    .from('vulnerabilities')
+  // Fetch findings from new findings table
+  const { data: findings } = await supabase
+    .from('findings')
     .select('*')
     .eq('scan_id', scanId)
     .order('severity', { ascending: false });
 
-  if (vulnError) {
-    console.error('Error fetching vulnerabilities:', vulnError);
-  }
-
-  // Fetch patches for this scan
-  const { data: patches, error: patchError } = await supabase
+  // Fetch patches
+  const { data: patches } = await supabase
     .from('patches')
     .select('*')
     .eq('scan_id', scanId);
 
-  if (patchError) {
-    console.error('Error fetching patches:', patchError);
-  }
+  // Map findings for client component
+  const mappedFindings = (findings || []).map(f => ({
+    id: f.id,
+    type: f.rule_id || f.description,
+    severity: f.severity as 'low' | 'medium' | 'high' | 'critical',
+    file: f.file_path,
+    line: f.line_start,
+    snippet: f.vulnerable_code || '',
+    description: f.description,
+    exploitabilityRationale: f.exploitability_rationale,
+    cveId: f.cve_id,
+    advisoryUrl: f.advisory_url,
+    advisoryNote: f.advisory_note,
+    confidence: f.confidence,
+    status: f.status,
+  }));
 
-  // Calculate statistics
-  const criticalIssues = vulnerabilities?.filter(v => v.severity === 'high').length || 0;
-  const mediumIssues = vulnerabilities?.filter(v => v.severity === 'medium').length || 0;
-  const lowIssues = vulnerabilities?.filter(v => v.severity === 'low').length || 0;
-  const totalPatches = patches?.length || 0;
-  const totalIssues = criticalIssues + mediumIssues + lowIssues;
-
-  const criticalPercent = totalIssues > 0 ? (criticalIssues / totalIssues) * 100 : 0;
-  const mediumPercent = totalIssues > 0 ? (mediumIssues / totalIssues) * 100 : 0;
-  const lowPercent = totalIssues > 0 ? (lowIssues / totalIssues) * 100 : 0;
-
-  // Convert vulnerabilities to findings format for the table component
-  const findings = vulnerabilities?.map(vuln => ({
-    id: vuln.id,
-    type: vuln.description,
-    severity: vuln.severity as 'low' | 'medium' | 'high',
-    file: vuln.file_path,
-    line: vuln.line_number,
-    snippet: vuln.code_snippet || '',
-    description: vuln.description
-  })) || [];
+  const mappedPatches = (patches || []).map(p => ({
+    id: p.id,
+    file: p.file_path,
+    before: p.original_code,
+    after: p.patched_code,
+    change: p.patch_type === 'dependency_upgrade_required' ? 'Dependency upgrade required' : 'Security patch applied',
+    patchType: p.patch_type,
+    findingId: p.finding_id,
+  }));
 
   return (
     <ScanResultsClient
-      initialScanResults={findings}
-      initialPatches={patches || []}
-      projectId={scan.project_id}
+      initialScanResults={mappedFindings}
+      initialPatches={mappedPatches}
+      projectId={scanId}
+      scanData={scan}
+      hardeningRecords={[]}
     />
   );
 }

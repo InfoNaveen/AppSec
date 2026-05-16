@@ -258,3 +258,81 @@ CREATE INDEX IF NOT EXISTS idx_vulnerabilities_scan_id ON vulnerabilities(scan_i
 CREATE INDEX IF NOT EXISTS idx_patches_vulnerability_id ON patches(vulnerability_id);
 CREATE INDEX IF NOT EXISTS idx_timeline_events_project_id ON timeline_events(project_id);
 CREATE INDEX IF NOT EXISTS idx_timeline_events_created_at ON timeline_events(created_at DESC);
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- SecureForge AI schema
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS sf_scans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  repo_url TEXT NOT NULL,
+  repo_path TEXT,
+  triggered_by TEXT DEFAULT 'manual',   -- 'webhook' | 'manual'
+  status TEXT DEFAULT 'queued',          -- 'queued' | 'running' | 'completed' | 'failed' | 'clean'
+  current_agent TEXT,                    -- name of agent currently running
+  language TEXT,                         -- 'python' | 'node' | 'unknown'
+  findings_count INT DEFAULT 0,
+  patches_count INT DEFAULT 0,
+  hardening_count INT DEFAULT 0,
+  report_url TEXT,
+  pr_url TEXT,
+  omium_trace_id TEXT,
+  user_id UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  completed_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS sf_findings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  scan_id UUID REFERENCES sf_scans(id) ON DELETE CASCADE,
+  rule_id TEXT,
+  severity TEXT,                         -- 'critical' | 'high' | 'medium' | 'low'
+  file_path TEXT,
+  line_start INT,
+  line_end INT,
+  description TEXT,
+  vulnerable_code TEXT,
+  exploitability_rationale TEXT,         -- Agent 3 LLM output
+  cve_id TEXT,
+  advisory_url TEXT,
+  advisory_note TEXT,
+  status TEXT DEFAULT 'open',            -- 'open' | 'patched' | 'false_positive'
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sf_patches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  scan_id UUID REFERENCES sf_scans(id) ON DELETE CASCADE,
+  finding_id UUID REFERENCES sf_findings(id),
+  original_code TEXT,
+  patched_code TEXT,
+  file_path TEXT,
+  patch_type TEXT DEFAULT 'code',        -- 'code' | 'dependency' | 'hardening'
+  applied BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE sf_scans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sf_findings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sf_patches ENABLE ROW LEVEL SECURITY;
+
+-- Policies: users see only their own scans
+CREATE POLICY "users_own_scans" ON sf_scans FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "users_own_findings" ON sf_findings FOR ALL
+  USING (scan_id IN (SELECT id FROM sf_scans WHERE user_id = auth.uid()));
+CREATE POLICY "users_own_patches" ON sf_patches FOR ALL
+  USING (scan_id IN (SELECT id FROM sf_scans WHERE user_id = auth.uid()));
+
+-- Service role bypass for background pipeline writes
+CREATE POLICY "service_role_all_scans" ON sf_scans FOR ALL USING (auth.role() = 'service_role');
+CREATE POLICY "service_role_all_findings" ON sf_findings FOR ALL USING (auth.role() = 'service_role');
+CREATE POLICY "service_role_all_patches" ON sf_patches FOR ALL USING (auth.role() = 'service_role');
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_sf_scans_user_id ON sf_scans(user_id);
+CREATE INDEX IF NOT EXISTS idx_sf_scans_status ON sf_scans(status);
+CREATE INDEX IF NOT EXISTS idx_sf_findings_scan_id ON sf_findings(scan_id);
+CREATE INDEX IF NOT EXISTS idx_sf_findings_severity ON sf_findings(severity);
+CREATE INDEX IF NOT EXISTS idx_sf_patches_scan_id ON sf_patches(scan_id);

@@ -58,7 +58,7 @@ export function Sidebar({
                   className="flex items-center space-x-3 w-full"
                 >
                   <Shield className="h-6 w-6 text-ds-accent-cyan" />
-                  <span className="text-lg font-bold font-syne text-ds-text-primary tracking-wide">ShieldX</span>
+                  <span className="text-lg font-bold font-syne text-ds-text-primary tracking-wide">SecureForge AI</span>
                 </motion.div>
               ) : (
                 <motion.div

@@ -67,7 +67,7 @@ export function Navbar({
               <Shield className="h-7 w-7 text-ds-accent-cyan transition-transform group-hover:scale-110 duration-300" />
               <div className="absolute inset-0 bg-ds-accent-cyan opacity-20 blur-md rounded-full pointer-events-none group-hover:opacity-40 transition-opacity" />
             </div>
-            <span className="text-xl font-bold font-syne text-ds-text-primary tracking-wide">ShieldX</span>
+            <span className="text-xl font-bold font-syne text-ds-text-primary tracking-wide">SecureForge AI</span>
           </Link>
         </div>
 
@@ -134,7 +134,7 @@ export function Navbar({
                   >
                     <div className="px-4 py-3 border-b border-ds-border">
                       <p className="text-sm font-semibold font-syne text-ds-text-primary">Admin User</p>
-                      <p className="text-xs text-ds-text-muted mt-0.5">admin@shieldx.ai</p>
+                      <p className="text-xs text-ds-text-muted mt-0.5">admin@SecureForge AI.ai</p>
                     </div>
                     <div className="py-1">
                       <a

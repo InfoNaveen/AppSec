@@ -59,28 +59,18 @@ export async function middleware(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // SECURITY FIX: Middleware Auth Fix - checks for /api directly in middleware
-  const isApiRoute = req.nextUrl.pathname.startsWith('/api');
-  if (!user && isApiRoute) {
-    return NextResponse.json({ success: false, error: 'Unauthorized via Middleware' }, { status: 401 });
-  }
-
   // Protected routes that require authentication
   const protectedPaths = ['/dashboard', '/upload', '/scan-results', '/patches', '/timeline', '/settings'];
   const isProtectedRoute = protectedPaths.some(path => req.nextUrl.pathname.startsWith(path));
 
-  // If the user is not logged in and trying to access a protected route, redirect to login
-  if (!user && isProtectedRoute) {
-    const redirectUrl = req.nextUrl.clone();
-    redirectUrl.pathname = '/login';
-    return NextResponse.redirect(redirectUrl);
-  }
+  // Hackathon override: Bypass all authentication checks
+  // Let everyone access the dashboard and APIs directly
 
   // If the user is logged in and trying to access login/signup, redirect to dashboard
   const authPaths = ['/login', '/signup'];
   const isAuthRoute = authPaths.some(path => req.nextUrl.pathname.startsWith(path));
 
-  if (user && isAuthRoute) {
+  if (isAuthRoute) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/dashboard';
     return NextResponse.redirect(redirectUrl);

@@ -1,14 +1,6 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0-00E5FF?style=for-the-badge&logo=shield&logoColor=white" />
-  <img src="https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js" />
-  <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
-  <img src="https://img.shields.io/badge/Azure_OpenAI-GPT--4o-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white" />
-  <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" />
-  <img src="https://img.shields.io/badge/Security-Hardened-00FF88?style=for-the-badge&logo=springsecurity&logoColor=white" />
-  <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" />
-</p>
+# 🛡️ SecureForge AI
 
-<br />
+**Autonomous AppSec Engineer — scans, reasons, patches, and hardens your codebase end-to-end, without a human in the loop.**
 
 <p align="center">
   <pre align="center">
@@ -18,7 +10,7 @@
   ██║  ██║██╔══╝  ╚██╗ ██╔╝╚════██║██╔══╝  ██║╚██╗██║   ██║   ██║██║╚██╗██║██╔══╝  ██║
        ██████╔╝███████╗ ╚████╔╝ ███████║███████╗██║ ╚████║   ██║   ██║██║ ╚████║███████╗███████╗
        ╚═════╝ ╚══════╝  ╚═══╝  ╚══════╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝
-                                                                     AI  ·  v1.0.0 ShieldX
+                                                                     AI  ·  v1.0.0
   </pre>
 </p>
 
@@ -28,7 +20,7 @@
 
 <p align="center">
   Scan · Detect · Patch · Validate — powered by a collaborative multi-agent LLM pipeline.<br/>
-  Built for the <strong>Techfest IIT Bombay AutoDev Hackathon</strong>.
+  Built for the <strong>Techfest IIT Bombay AutoDev Hackathon</strong> & <strong>Anvil MMXXVI · P·03 · Omium Sponsored Track</strong>.
 </p>
 
 <p align="center">
@@ -46,357 +38,97 @@
 
 ---
 
-## 🔭 Overview
+## What It Does
 
-**DevSentinel AI** is an enterprise-grade autonomous security platform that orchestrates a multi-agent LLM workflow to:
+SecureForge AI is a fully autonomous, multi-agent security pipeline powered by LangGraph. Point it at any Python repository and it will:
 
-1. **Ingest** code repositories via ZIP upload or GitHub URL
-2. **Scan** for vulnerabilities using a hybrid pattern-matching + LLM-assisted analysis engine
-3. **Generate** AI-authored secure patches with before/after diff views
-4. **Validate** patches using a NeuroSploit-inspired Red-Team gate — patches only ship when confirmed non-exploitable
-5. **Commit** fixes as pull requests directly to your GitHub repository
+1. **Map** — Walk the codebase, detect framework, identify attack surface via LLM
+2. **Scan** — Run Semgrep, Bandit, pip-audit + LLM-powered analysis for logic flaws
+3. **Triage** — LLM exploitability assessment with autonomous branching (clean repos skip to report)
+4. **Patch** — Generate secure code replacements for critical/high vulnerabilities
+5. **Harden** — Add rate limiting, security headers, CORS lockdown, secret management
+6. **Report** — JSON + PDF report, Discord notification, GitHub PR with all fixes
 
-> Built as a full-cycle prototype demonstrating a complete secure development pipeline — from repo ingestion to automated PR — with all agent outputs governed by **Azure AI Content Safety** (Prompt Shields + Protected Material Detection).
+All actions are traced via **Omium** for full observability.
 
 ---
 
-## 🏛️ Architecture
-
-DevSentinel AI uses a **sequential multi-agent orchestration model** where each agent in the chain has a distinct, non-overlapping responsibility. No agent acts on unvalidated output from the previous stage.
+## Architecture
 
 ```
-  ┌──────────────────────────────────────────────────────────┐
-  │               User Input Layer                           │
-  │         ZIP Upload  ·  GitHub URL  ·  User Story         │
-  └─────────────────────────┬────────────────────────────────┘
-                             │
-                             ▼
-            ┌────────────────────────────────┐
-            │         🏗️  Architect          │
-            │  Maps project structure,        │
-            │  identifies high-risk surfaces  │
-            └────────────────┬───────────────┘
-                             │
-                             ▼
-            ┌────────────────────────────────┐
-            │         🔨  Builder            │
-            │  Constructs a targeted,         │
-            │  prioritized scanning strategy  │
-            └────────────────┬───────────────┘
-                             │
-                             ▼
-            ┌────────────────────────────────┐
-            │         🔎  Critic             │
-            │  Challenges assumptions,        │
-            │  reduces false positives        │
-            └────────────────┬───────────────┘
-                             │
-                             ▼
-            ┌────────────────────────────────┐
-            │         🛡️  Sentinel           │
-            │  Executes hybrid scan:          │
-            │  regex patterns + LLM analysis  │
-            └────────────────┬───────────────┘
-                             │
-                             ▼
-            ┌────────────────────────────────┐
-            │     ⚔️  Red-Team Gate          │
-            │  NeuroSploit-inspired offensive │
-            │  validation of all patches      │
-            └────────────────┬───────────────┘
-                             │
-                             ▼
-  ┌──────────────────────────────────────────────────────────┐
-  │              Output Layer                                │
-  │      Patch Report  ·  GitHub PR  ·  Timeline Event       │
-  └──────────────────────────────────────────────────────────┘
+GitHub Push → Webhook → Clone → LangGraph Pipeline
+                                    ↓
+                              [1] Mapper
+                                    ↓
+                              [2] Scanner (Semgrep + Bandit + pip-audit + LLM)
+                                    ↓
+                              [3] Triage (LLM exploitability analysis)
+                                    ↓
+                          ┌─── critical/high? ───┐
+                          ↓                      ↓
+                    [4] Remediator          [5] Hardener
+                          ↓                      ↓
+                          └──────────────────────┘
+                                    ↓
+                              [6] Reporter (PDF + Discord + GitHub PR)
 ```
 
-All inter-agent communication is gated through **Azure AI Content Safety** — no raw LLM output reaches the user without Prompt Shield + Protected Material checks.
-
 ---
 
-## ✨ Features
-
-### 🔍 Intelligent Security Scanning
-- **LLM-assisted vulnerability detection** — catches complex, context-dependent bugs that static analysis misses
-- **OWASP Top 10 full coverage** — injection, broken auth, XSS, IDOR, security misconfiguration, and more
-- **Severity classification** — every finding graded Critical / High / Medium / Low with CVSS-aligned rationale
-- **Hybrid engine** — fast regex patterns for known signatures, deep LLM reasoning for novel attack vectors
-
-### 🩹 Automated Patch Generation
-- **AI-authored secure patches** with inline diff viewer (before/after comparison)
-- **Automatic backup & restore** — every patch is reversible; original state is preserved
-- **Export patched repository** as a downloadable ZIP
-
-### 🔗 GitHub Integration
-- **One-click PR creation** — commit fixes directly to your repository as a pull request
-- **Token-based auth** — no secrets embedded in code; tokens are scoped and never logged
-
-### 📊 Enterprise Dashboard
-- **Project analytics** — vulnerability trends, severity distribution, patch coverage over time
-- **Security timeline** — chronological event log of every scan, patch, and commit
-- **Real-time feedback** — live scan progress with agent-by-agent status
-- **Drag-and-drop ingestion** — ZIP upload and GitHub URL both supported from the same UI
-- **Dark mode · Responsive · WCAG 2.1 AA compliant**
-
-### ⚔️ Red-Team Validation Terminal
-- Visual attack log showing exploit attempts and mitigation outcomes in real time
-- NeuroSploit-inspired offensive techniques confirm patches are genuinely non-exploitable — not just syntactically different
-- Every resolved vulnerability carries a "confirmed patched" attestation
-
----
-
-## 🛠️ Tech Stack
-
-| Layer | Technology | Purpose |
-|---|---|---|
-| **Frontend** | Next.js 14 (App Router), TypeScript | UI, routing, SSR |
-| **Styling** | Tailwind CSS, shadcn/ui | Component library & design system |
-| **Animations** | Framer Motion | Page transitions, micro-interactions |
-| **AI Orchestration** | Azure OpenAI (GPT-4o & o1-preview) | Multi-agent pipeline |
-| **Content Safety** | Azure AI Content Safety | Prompt shields, protected material detection |
-| **Secret Management** | Azure Key Vault | Production secret storage |
-| **Database & Auth** | Supabase (PostgreSQL + GoTrue) | Persistence, RLS, user auth |
-| **Rate Limiting** | Upstash Redis + `@upstash/ratelimit` | Abuse prevention |
-| **File Handling** | AdmZip, Node.js fs | ZIP ingestion, extraction |
-| **GitHub API** | `@octokit/rest` | PR creation, commit automation |
-| **Hosting** | Vercel / Azure App Service | Edge & serverless deployment |
-| **CI/CD** | GitHub Actions | Automated build, test, deploy |
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-| Requirement | Version |
-|---|---|
-| Node.js | 18+ |
-| npm / yarn | latest |
-| Supabase account | — |
-| Azure OpenAI access | GPT-4o deployment |
-| Upstash Redis | (for rate limiting) |
-
-### Installation
-
-**1 — Clone the repository**
+## Quick Start
 
 ```bash
-git clone https://github.com/InfoNaveen/DEVSENTINEL-AI.git
-cd DEVSENTINEL-AI
-```
-
-**2 — Install dependencies**
-
-```bash
+# Install dependencies
 npm install
-```
 
-**3 — Configure environment variables**
-
-```bash
+# Set up environment
 cp .env.local.example .env.local
-# Open .env.local and fill in all required keys (see Environment Variables below)
-```
+# Fill in at minimum: ANTHROPIC_API_KEY + SUPABASE keys
 
-**4 — Apply the Supabase schema**
-
-- Create a new project on [supabase.com](https://supabase.com/)
-- Copy your project URL and API keys into `.env.local`
-- Open the SQL editor in your Supabase dashboard and run:
-
-```sql
--- Paste the contents of supabase/schema.sql
-```
-
-**5 — Start the development server**
-
-```bash
+# Run development server
 npm run dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) — the dashboard is live.
-
-> **Verify your LLM connection before your first scan:**
-> ```bash
-> curl http://localhost:3000/api/test-llm
-> ```
-
----
-
-## 🔐 Environment Variables
-
-Create `.env.local` from the example file. Azure variables take priority; fallback LLM keys are used when Azure is unavailable.
-
-```bash
-# ─── Azure OpenAI (Primary Orchestration) ───────────────────────────────────
-AZURE_OPENAI_API_KEY=                    # Your Azure OpenAI resource key
-AZURE_OPENAI_ENDPOINT=                   # https://<resource>.openai.azure.com
-AZURE_OPENAI_DEPLOYMENT_NAME=            # e.g. gpt-4o
-
-# ─── Azure AI Content Safety ────────────────────────────────────────────────
-AZURE_CONTENT_SAFETY_KEY=
-AZURE_CONTENT_SAFETY_ENDPOINT=
-
-# ─── Azure Key Vault (Production Secret Management) ─────────────────────────
-AZURE_KEY_VAULT_NAME=                    # Future: rotate secrets without redeployment
-
-# ─── Application ────────────────────────────────────────────────────────────
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-
-# ─── Supabase ───────────────────────────────────────────────────────────────
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=               # Server-side only — never expose to client
-
-# ─── Upstash Redis (Rate Limiting) ──────────────────────────────────────────
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-
-# ─── Fallback LLM Keys (used when Azure is unavailable) ─────────────────────
-OPENROUTER_API_KEY=
-GEMINI_API_KEY=
-GROQ_API_KEY=
-TOGETHER_API_KEY=
-```
-
-> [!WARNING]
-> **Never commit `.env*` files to version control.** The `.gitignore` already excludes them. Rotate any key that is accidentally exposed — treat exposure as a full compromise.
-
-> [!NOTE]
-> All keys are validated at server startup via `instrumentation.ts`. The server will throw a descriptive error and refuse to start if any required key is missing — there are no silent fallbacks in production.
-
----
-
-## 📁 Project Structure
-
-```
-DEVSENTINEL-AI/
-│
-├── app/                              # Next.js 14 App Router
-│   ├── api/                          # API route handlers (all auth-gated)
-│   │   ├── upload/route.ts           # ZIP & GitHub repo ingestion
-│   │   ├── scan/route.ts             # Scan orchestration trigger
-│   │   ├── patch/route.ts            # Patch application
-│   │   ├── commit/route.ts           # GitHub PR creation
-│   │   ├── red-team-scan/route.ts    # Offensive validation endpoint
-│   │   └── timeline/add/route.ts     # Timeline event logging
-│   │
-│   ├── dashboard/page.tsx            # Main analytics dashboard
-│   ├── upload/page.tsx               # Repo ingestion UI
-│   ├── scan-results/                 # Vulnerability results
-│   │   ├── page.tsx
-│   │   └── ScanResultsClient.tsx
-│   ├── patches/page.tsx              # Patch management
-│   ├── timeline/page.tsx             # Security event timeline
-│   ├── settings/page.tsx             # User & integration settings
-│   ├── login/page.tsx
-│   ├── signup/page.tsx
-│   └── layout.tsx                    # Root layout (fonts, providers)
-│
-├── components/                       # Reusable UI components
-│   ├── Navbar.tsx                    # Top navigation bar
-│   ├── Sidebar.tsx                   # Collapsible side navigation
-│   ├── RedTeamTerminal.tsx           # Live attack log viewer
-│   ├── VulnerabilityCard.tsx         # Expandable finding card
-│   ├── VulnerabilityTable.tsx        # Sortable findings table
-│   ├── PatchDiff.tsx                 # Before/after code diff viewer
-│   ├── Timeline.tsx                  # Chronological event feed
-│   ├── ScanContext.tsx               # Global scan state provider
-│   └── UploadForm.tsx                # Drag-and-drop upload
-│
-├── lib/                              # Core business logic
-│   ├── orchestrator.ts               # Multi-agent pipeline coordinator
-│   ├── sentinel.ts                   # Security scanning engine
-│   ├── patcher.ts                    # Patch generation & application
-│   ├── llm.ts                        # LLM provider abstraction layer
-│   ├── github.ts                     # GitHub PR & commit integration
-│   ├── extractZip.ts                 # Hardened ZIP extraction (Zip Slip safe)
-│   ├── auth-utils.ts                 # Server-side auth helpers
-│   ├── security-auditor-agent.ts     # LLM-based deep audit agent
-│   ├── sanitizeUrl.ts                # URL credential scrubbing utility
-│   ├── storage-utils.ts              # Supabase Storage helpers
-│   ├── supabase.ts                   # Supabase client factory (server-only)
-│   └── supabase-server.ts            # SSR Supabase client
-│
-├── services/
-│   └── offensive_engine/             # Red-Team validation modules
-│       ├── neurosploit-integration.ts
-│       ├── osint-collector.ts
-│       └── offensive-tools.ts
-│
-├── supabase/
-│   └── schema.sql                    # Full database schema
-│
-├── middleware.ts                     # Edge auth + CSRF + rate-limit layer
-├── instrumentation.ts                # Startup env validation
-├── next.config.js                    # Security headers (CSP, HSTS, etc.)
-├── tailwind.config.js
-├── .env.local.example
-└── package.json
+# Trigger a scan (manual)
+curl -X POST http://localhost:3000/api/scan/trigger \
+  -H "Content-Type: application/json" \
+  -d '{"repoUrl": "https://github.com/your-org/vulnerable-flask-app"}'
 ```
 
 ---
 
-## 🤖 Multi-Agent Pipeline
+## Environment Variables
 
-Each agent is a discrete, stateless unit. Agents communicate via structured JSON — no agent can directly mutate another agent's output.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ANTHROPIC_API_KEY` | Yes* | Primary LLM provider |
+| `GROQ_API_KEY` | Yes* | Backup LLM (free tier) |
+| `OPENAI_API_KEY` | No | Optional fallback |
+| `AZURE_OPENAI_API_KEY` | No | Optional fallback |
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Server-side Supabase |
+| `GITHUB_TOKEN` | No | For automated PRs |
+| `DISCORD_WEBHOOK_URL` | No | Scan notifications |
+| `TAVILY_API_KEY` | No | CVE advisory search |
+| `OMIUM_API_KEY` | No | Tracing (bonus points) |
 
-### 🏗️ Architect Agent
-Ingests the repository and builds a structural risk map. Identifies high-risk entry points (user-controlled inputs, exec calls, crypto operations), dependency chains, and sensitive file paths. Output: a ranked list of areas requiring deep scanning.
-
-### 🔨 Builder Agent
-Consumes the Architect's risk map and generates a **targeted, prioritized scanning strategy** — deciding which vulnerability classes to check for in which files, in which order. Eliminates coverage gaps while preventing redundant analysis.
-
-### 🔎 Critic Agent
-Independently reviews the Builder's scanning plan. Challenges assumptions, identifies likely false positive sources, and refines the approach before any code is actually analyzed. Acts as a quality gate on the strategy itself.
-
-### 🛡️ Sentinel Agent
-Executes the approved scanning plan using a **hybrid approach**:
-- **Pattern engine** — high-speed regex rules for known vulnerability signatures (SQL injection patterns, hardcoded secrets, unsafe `eval()` usage, etc.)
-- **LLM engine** — context-aware deep analysis for complex, multi-step vulnerabilities that pattern matching cannot detect
-
-### ⚔️ Red-Team Validation Gate
-After patches are generated, this gate uses **NeuroSploit-inspired offensive techniques** to actively attempt to exploit the patched code. A vulnerability is only marked **Resolved** when the exploit attempt definitively fails. This prevents the common failure mode of patches that change syntax without removing exploitability.
+\* At least one LLM key must be present.
 
 ---
 
-## 🔒 Security Remediation Log (ShieldX V1)
+## Tech Stack
 
-This release includes a comprehensive security overhaul. All vulnerabilities below were identified via the deep-scan audit and remediated before v1.0.0 shipped.
-
-| Severity | Vulnerability | File(s) | Status |
-|---|---|---|---|
-| 🔴 Critical | **Zip Slip / Path Traversal** — crafted archives could overwrite arbitrary server files | `lib/extractZip.ts` | ✅ Fixed |
-| 🔴 Critical | **Command Injection** — GitHub token interpolated into shell string via `exec()` | `app/api/upload/route.ts` | ✅ Fixed |
-| 🔴 Critical | **Path Traversal** — `projectPath` user input not canonicalized before file ops | `app/api/red-team-scan/route.ts` | ✅ Fixed |
-| 🔴 Critical | **Shell Injection** — OSINT `target` string interpolated into `echo "${target}" \| gf` | `services/offensive_engine/osint-collector.ts` | ✅ Fixed |
-| 🔴 Critical | **Auth Bypass** — middleware matcher excluded all `/api/**` routes from JWT checks | `middleware.ts` | ✅ Fixed |
-| 🟠 High | **API Key Hardcoded Fallbacks** — `MISSING_X_API_KEY` strings baked into source | `lib/llm.ts` | ✅ Fixed |
-| 🟠 High | **No File Type Validation** — any file accepted as ZIP, no magic byte / size check | `app/api/upload/route.ts` | ✅ Fixed |
-| 🟠 High | **Token Leak in Error Responses** — GitHub token forwarded in JSON error body | `app/api/upload/route.ts` | ✅ Fixed |
-| 🟠 High | **Vulnerable Test Files Committed** — working exploit patterns in repo root | `vulnerable-test.js` | ✅ Removed |
-| 🟠 High | **Service Role Key Scope** — Supabase service role accessible from client contexts | `lib/supabase.ts` | ✅ Fixed |
-| 🟡 Medium | **No Rate Limiting** — expensive LLM/clone ops had no per-user throttle | All `/api/*` routes | ✅ Fixed |
-| 🟡 Medium | **CSRF on Mutation Routes** — no Origin validation on commit/patch endpoints | `api/commit`, `api/patch` | ✅ Fixed |
-| 🟡 Medium | **PII in LLM Prompts** — raw source code (with secrets) sent to third-party LLMs unredacted | `lib/orchestrator.ts` | ✅ Fixed |
-| 🟡 Medium | **Temp Dir Leak on Crash** — cloned dirs not cleaned in `finally` block | `app/api/upload/route.ts` | ✅ Fixed |
-| 🟢 Low | **Missing Security Headers** — no CSP, HSTS, X-Frame-Options in config | `next.config.js` | ✅ Fixed |
-| 🟢 Low | **render.yaml Exposed** — deployment topology committed publicly | `render.yaml` | ✅ Redacted |
-
-**Remediation highlights:**
-
-- All shell execution migrated from `exec()` to `execFile()` — arguments are passed as arrays, zero shell interpolation possible
-- ZIP extraction now validates `path.resolve(entryPath).startsWith(path.resolve(extractTo))` for every entry before write
-- Env key validation moved to `instrumentation.ts` — server refuses to start if any required key is absent
-- Upstash Redis rate limiting: `/api/upload` = 10 req/hr/user, `/api/scan` = 5 req/hr/user
-- Supabase service role client is `'use server'` scoped with a runtime `window !== undefined` guard
-- Security headers added to `next.config.js`: `Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Pipeline**: LangGraph with SqliteSaver checkpointing
+- **LLM**: Anthropic Claude / Groq Llama / OpenAI GPT-4o (fallback chain)
+- **Database**: Supabase (PostgreSQL + Auth + Storage)
+- **Tools**: Semgrep, Bandit, pip-audit
+- **Tracing**: Omium
+- **Notifications**: Discord Webhooks, GitHub PRs
 
 ---
 
-## 🚢 Deployment
+## License
 
 ### Vercel (Recommended for Prototyping)
 

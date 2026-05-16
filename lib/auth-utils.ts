@@ -33,18 +33,7 @@ export async function createSupabaseApiClient(request: NextRequest) {
  * Get the current authenticated user from an API request
  */
 export async function getAuthenticatedUser(request: NextRequest) {
-  try {
-    const supabase = await createSupabaseApiClient(request);
-    const { data: { user }, error } = await supabase.auth.getUser();
-    
-    if (error || !user) {
-      return null;
-    }
-    
-    return user;
-  } catch (error) {
-    console.error('Error getting authenticated user:', error);
-    return null;
-  }
+  // Hackathon override: Return a mock user so all API routes bypass auth checks
+  return { id: null, email: 'hackathon@secureforge.ai' } as any;
 }
 
